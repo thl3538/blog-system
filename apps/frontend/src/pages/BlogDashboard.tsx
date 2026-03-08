@@ -64,6 +64,20 @@ type PostsListResponse = {
 
 type ThemeMode = 'system' | 'light' | 'dark';
 type EditorTab = 'write' | 'preview';
+type AuthMode = 'login' | 'register';
+
+type AuthUser = {
+  id: number;
+  email: string;
+  role: string;
+  name?: string | null;
+};
+
+type AuthFormValues = {
+  email: string;
+  password: string;
+  name?: string;
+};
 
 const emptyForm: PostFormValues = {
   title: '',
@@ -72,6 +86,8 @@ const emptyForm: PostFormValues = {
 };
 
 const THEME_STORAGE_KEY = 'blog-system-theme';
+const TOKEN_STORAGE_KEY = 'blog-system-token';
+const USER_STORAGE_KEY = 'blog-system-user';
 const DRAFT_STORAGE_PREFIX = 'blog-system-draft';
 
 const getSystemPrefersDark = () => {
@@ -143,6 +159,7 @@ const renderMarkdown = (content: string) => (
 
 function BlogDashboard() {
   const [form] = Form.useForm<PostFormValues>();
+  const [authForm] = Form.useForm<AuthFormValues>();
   const watchedForm = Form.useWatch([], form) as PostFormValues | undefined;
   const watchedContent = Form.useWatch('content', form) ?? '';
 
@@ -164,6 +181,9 @@ function BlogDashboard() {
   const [order, setOrder] = useState<'asc' | 'desc'>('desc');
   const [editorTab, setEditorTab] = useState<EditorTab>('write');
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+  const [authMode, setAuthMode] = useState<AuthMode>('login');
+  const [authSubmitting, setAuthSubmitting] = useState(false);
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
 
   const selectedPost = useMemo(
     () => posts.find((post) => post.id === selectedId) ?? null,
@@ -171,6 +191,7 @@ function BlogDashboard() {
   );
 
   const isDark = themeMode === 'dark' || (themeMode === 'system' && systemPrefersDark);
+  const isLoggedIn = Boolean(authUser);
   const currentDraftKey = useMemo(
     () => getDraftStorageKey(mode, selectedId),
     [mode, selectedId],
@@ -194,6 +215,59 @@ function BlogDashboard() {
     } catch {
       return null;
     }
+  };
+
+  const syncAuthStorage = (payload: { accessToken: string; user: AuthUser } | null) => {
+    if (typeof window === 'undefined') return;
+
+    if (!payload) {
+      window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+      window.localStorage.removeItem(USER_STORAGE_KEY);
+      return;
+    }
+
+    window.localStorage.setItem(TOKEN_STORAGE_KEY, payload.accessToken);
+    window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(payload.user));
+  };
+
+  const fetchProfile = async () => {
+    try {
+      const { data } = await http.get<AuthUser>('/auth/me');
+      setAuthUser(data);
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(data));
+      }
+    } catch {
+      setAuthUser(null);
+      syncAuthStorage(null);
+    }
+  };
+
+  const handleAuthSubmit = async (values: AuthFormValues) => {
+    setAuthSubmitting(true);
+
+    try {
+      const endpoint = authMode === 'login' ? '/auth/login' : '/auth/register';
+      const { data } = await http.post<{ accessToken: string; user: AuthUser }>(
+        endpoint,
+        values,
+      );
+
+      setAuthUser(data.user);
+      syncAuthStorage(data);
+      authForm.resetFields(['password']);
+      message.success(authMode === 'login' ? '登录成功' : '注册成功并已登录');
+    } catch (error) {
+      message.error(getErrorMessage(error, authMode === 'login' ? '登录失败' : '注册失败'));
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
+
+  const handleLogout = () => {
+    setAuthUser(null);
+    syncAuthStorage(null);
+    message.success('已退出登录');
   };
 
   const fetchPosts = async (params?: {
@@ -252,6 +326,25 @@ function BlogDashboard() {
   };
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const rawUser = window.localStorage.getItem(USER_STORAGE_KEY);
+    if (rawUser) {
+      try {
+        setAuthUser(JSON.parse(rawUser) as AuthUser);
+      } catch {
+        window.localStorage.removeItem(USER_STORAGE_KEY);
+      }
+    }
+
+    const token = window.localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (token) {
+      void fetchProfile();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     void fetchPosts({
       page: 1,
       pageSize: pagination.pageSize,
@@ -297,6 +390,11 @@ function BlogDashboard() {
   }, [watchedForm, mode, currentDraftKey]);
 
   const startCreate = () => {
+    if (!isLoggedIn) {
+      message.warning('请先登录再创建文章');
+      return;
+    }
+
     setMode('create');
     setEditorTab('write');
 
@@ -310,6 +408,11 @@ function BlogDashboard() {
   };
 
   const startEdit = () => {
+    if (!isLoggedIn) {
+      message.warning('请先登录再编辑文章');
+      return;
+    }
+
     if (!selectedPost) return;
 
     const base: PostFormValues = {
@@ -386,6 +489,11 @@ function BlogDashboard() {
   };
 
   const handleDelete = () => {
+    if (!isLoggedIn) {
+      message.warning('请先登录再删除文章');
+      return;
+    }
+
     if (!selectedPost) return;
 
     Modal.confirm({
@@ -490,7 +598,12 @@ function BlogDashboard() {
                   <Button icon={<ReloadOutlined />} onClick={() => void fetchPosts()}>
                     刷新
                   </Button>
-                  <Button type="primary" icon={<PlusOutlined />} onClick={startCreate}>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={startCreate}
+                    disabled={!isLoggedIn}
+                  >
                     写文章
                   </Button>
                 </Space>
@@ -655,6 +768,73 @@ function BlogDashboard() {
             <div className="space-y-6">
               <Card
                 className="!rounded-2xl !border-0 !shadow-sm"
+                title="账号"
+                extra={
+                  isLoggedIn ? (
+                    <Button size="small" onClick={handleLogout}>
+                      退出
+                    </Button>
+                  ) : null
+                }
+              >
+                {isLoggedIn ? (
+                  <div className="space-y-2">
+                    <Typography.Text strong>{authUser?.name || '未命名用户'}</Typography.Text>
+                    <div className="text-sm text-slate-500">{authUser?.email}</div>
+                    <Tag color="purple">{authUser?.role}</Tag>
+                  </div>
+                ) : (
+                  <Form<AuthFormValues>
+                    layout="vertical"
+                    form={authForm}
+                    onFinish={handleAuthSubmit}
+                    initialValues={{ email: '', password: '', name: '' }}
+                  >
+                    <Segmented<AuthMode>
+                      className="!mb-3"
+                      value={authMode}
+                      onChange={(value) => setAuthMode(value as AuthMode)}
+                      options={[
+                        { label: '登录', value: 'login' },
+                        { label: '注册', value: 'register' },
+                      ]}
+                    />
+
+                    <Form.Item
+                      label="邮箱"
+                      name="email"
+                      rules={[{ required: true, message: '请输入邮箱' }]}
+                    >
+                      <Input placeholder="you@example.com" />
+                    </Form.Item>
+
+                    {authMode === 'register' ? (
+                      <Form.Item
+                        label="昵称"
+                        name="name"
+                        rules={[{ required: true, message: '请输入昵称' }]}
+                      >
+                        <Input placeholder="请输入昵称" />
+                      </Form.Item>
+                    ) : null}
+
+                    <Form.Item
+                      label="密码"
+                      name="password"
+                      rules={[{ required: true, message: '请输入密码（至少6位）' }]}
+                    >
+                      <Input.Password placeholder="请输入密码" />
+                    </Form.Item>
+
+                    <Button type="primary" htmlType="submit" loading={authSubmitting} block>
+                      {authMode === 'login' ? '登录' : '注册并登录'}
+                    </Button>
+                  </Form>
+                )}
+              </Card>
+
+              <Card
+                className="!rounded-2xl !border-0 !shadow-sm"
                 title={
                   <Space>
                     <EyeOutlined />
@@ -724,12 +904,20 @@ function BlogDashboard() {
                   ) : null
                 }
               >
-                <Form<PostFormValues>
-                  layout="vertical"
-                  form={form}
-                  initialValues={emptyForm}
-                  onFinish={handleSubmit}
-                >
+                {!isLoggedIn ? (
+                  <Alert
+                    type="info"
+                    showIcon
+                    message="请先登录再发布或编辑文章"
+                    description="登录后可使用 Markdown 编辑、自动草稿和插图能力。"
+                  />
+                ) : (
+                  <Form<PostFormValues>
+                    layout="vertical"
+                    form={form}
+                    initialValues={emptyForm}
+                    onFinish={handleSubmit}
+                  >
                   <Form.Item
                     label="标题"
                     name="title"
@@ -792,18 +980,19 @@ function BlogDashboard() {
                     </Card>
                   ) : null}
 
-                  <Space>
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      loading={submitting}
-                      icon={<SaveOutlined />}
-                    >
-                      {mode === 'edit' ? '保存修改' : '发布文章'}
-                    </Button>
-                    <Button onClick={cancelEdit}>重置</Button>
-                  </Space>
-                </Form>
+                    <Space>
+                      <Button
+                        type="primary"
+                        htmlType="submit"
+                        loading={submitting}
+                        icon={<SaveOutlined />}
+                      >
+                        {mode === 'edit' ? '保存修改' : '发布文章'}
+                      </Button>
+                      <Button onClick={cancelEdit}>重置</Button>
+                    </Space>
+                  </Form>
+                )}
               </Card>
             </div>
           </div>

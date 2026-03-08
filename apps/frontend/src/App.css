@@ -1,0 +1,156 @@
+#root {
+  width: 100%;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  min-height: 100vh;
+  color: #1f2937;
+  background: #f4f7fb;
+}
+
+.sidebar {
+  border-right: 1px solid #e5e7eb;
+  background: #fff;
+  padding: 20px;
+}
+
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.sidebar-header h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.post-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.post-list button {
+  width: 100%;
+  text-align: left;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  padding: 10px;
+}
+
+.post-list button.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.post-list strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.post-list small {
+  color: #6b7280;
+}
+
+.content {
+  padding: 28px;
+}
+
+.editor {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.editor h2 {
+  margin-top: 0;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+input,
+textarea {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+button {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: #2563eb;
+}
+
+.error {
+  color: #b91c1c;
+  margin-bottom: 12px;
+}
+
+.article h2 {
+  margin-bottom: 8px;
+}
+
+.summary {
+  color: #4b5563;
+}
+
+pre {
+  white-space: pre-wrap;
+  font-family: inherit;
+  line-height: 1.7;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.meta {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+  }
+}

@@ -1,32 +1,41 @@
 # Blog System (React + Vite + NestJS + MySQL)
 
-一个简单的全栈博客系统：
+一个可持续迭代的全栈博客系统：
 
-- 前端：React + Vite + TypeScript
-- 后端：NestJS + Prisma
+- 前端：React + Vite + TypeScript + Ant Design + Tailwind
+- 后端：NestJS + Prisma + JWT + RBAC
 - 数据库：MySQL
-- 功能：文章列表、发布、编辑、删除、JWT 登录鉴权、角色权限控制
 - 编辑体验：Markdown 编辑/预览、插图、自动本地草稿
+- 工程化：GitHub Actions CI、Dockerfile、一键部署脚本
 
 ## 项目结构
 
 ```text
 blog-system/
   apps/
-    frontend/         # React + Vite
-    backend/          # NestJS API + Prisma
-      prisma/
-        schema.prisma
+    frontend/
+    backend/
+  scripts/
+  .github/workflows/
 ```
 
-## 1) 安装依赖
+## 本地开发
+
+### 1) 安装依赖
 
 ```bash
 cd blog-system
 npm install --workspaces
 ```
 
-## 2) 准备 MySQL
+### 2) 配置环境变量
+
+```bash
+cp apps/backend/.env.development.example apps/backend/.env
+cp apps/frontend/.env.development.example apps/frontend/.env
+```
+
+### 3) 准备 MySQL
 
 请确保本机已有 MySQL，并创建数据库：
 
@@ -34,40 +43,24 @@ npm install --workspaces
 CREATE DATABASE blog_system;
 ```
 
-默认连接字符串示例：
-
-```text
-mysql://root:password@localhost:3306/blog_system
-```
-
-## 3) 配置后端环境变量
-
-```bash
-cp apps/backend/.env.example apps/backend/.env
-```
-
-可按需修改：
-
-- `JWT_SECRET`：JWT 签名密钥（生产环境务必改成强随机）
-- `JWT_EXPIRES_IN`：token 过期时间（默认 `7d`）
-- `CORS_ORIGIN`：允许跨域来源，可用逗号分隔多个域名
-
-## 4) 生成 Prisma Client + 同步表结构（不使用 migration）
+### 4) 生成 Prisma Client + 推表（不走 migration）
 
 ```bash
 npm run prisma:generate
 npm run prisma:push
 ```
 
-## 5) 启动后端
+### 5) 启动服务
 
 ```bash
 npm run dev:backend
+npm run dev:frontend
 ```
 
-默认地址：`http://localhost:3000`
+- 前端：`http://localhost:5173`
+- 后端：`http://localhost:3000`
 
-API 前缀：`/api`
+## 主要 API
 
 - `GET /api/health`
 - `POST /api/auth/register`
@@ -79,32 +72,52 @@ API 前缀：`/api`
 - `PATCH /api/posts/:id`（需登录，角色：ADMIN/EDITOR）
 - `DELETE /api/posts/:id`（需登录，角色：ADMIN/EDITOR）
 
-## 6) 启动前端
+## 工程化（第5步）
 
-新开一个终端：
+### CI（GitHub Actions）
+
+工作流文件：`.github/workflows/ci.yml`
+
+CI 会自动执行：
+1. `npm ci`
+2. Prisma Client 生成
+3. lint
+4. build
+5. backend test
+
+### Docker 部署（前后端一键）
+
+1. 准备生产环境变量：
 
 ```bash
-cd /path/to/blog-system
-npm run dev:frontend
+cp apps/backend/.env.production.example apps/backend/.env.production
+cp apps/frontend/.env.production.example apps/frontend/.env.production
 ```
 
-默认地址：`http://localhost:5173`
-
-前端默认请求：`http://localhost:3000/api`
-
-如需修改，可在 `apps/frontend/.env` 中设置：
+2. 一键部署：
 
 ```bash
-VITE_API_BASE_URL=http://localhost:3000/api
+npm run deploy
 ```
+
+3. 停止服务：
+
+```bash
+npm run deploy:down
+```
+
+部署后默认地址：
+- 前端：`http://localhost:8080`
+- 后端健康检查：`http://localhost:3000/api/health`
 
 ## 常用命令
 
 ```bash
+npm run lint
+npm run build
+npm run test
+npm run ci
 npm run prisma:generate
 npm run prisma:push
-npm run prisma:migrate   # 可选：未来需要 migration 再用
 npm run prisma:studio
-npm run build
-npm run test --workspace backend
 ```

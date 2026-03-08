@@ -1,19 +1,21 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
-import { Post } from './post.interface';
 
 @Injectable()
 export class PostsService {
-  private posts: Post[] = [];
-  private nextId = 1;
+  constructor(private readonly prisma: PrismaService) {}
 
-  findAll(): Post[] {
-    return [...this.posts].sort((a, b) => b.id - a.id);
+  findAll() {
+    return this.prisma.post.findMany({
+      orderBy: { id: 'desc' },
+    });
   }
 
-  findOne(id: number): Post {
-    const post = this.posts.find((item) => item.id === id);
+  async findOne(id: number) {
+    const post = await this.prisma.post.findUnique({ where: { id } });
     if (!post) {
       throw new NotFoundException(`Post ${id} not found`);
     }
@@ -21,47 +23,51 @@ export class PostsService {
     return post;
   }
 
-  create(dto: CreatePostDto): Post {
-    const now = new Date().toISOString();
-    const post: Post = {
-      id: this.nextId++,
-      title: dto.title,
-      summary: dto.summary,
-      content: dto.content,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    this.posts.push(post);
-    return post;
+  create(dto: CreatePostDto) {
+    return this.prisma.post.create({
+      data: {
+        title: dto.title,
+        summary: dto.summary,
+        content: dto.content,
+      },
+    });
   }
 
-  update(id: number, dto: UpdatePostDto): Post {
-    const post = this.findOne(id);
+  async update(id: number, dto: UpdatePostDto) {
+    try {
+      return await this.prisma.post.update({
+        where: { id },
+        data: {
+          ...(dto.title !== undefined ? { title: dto.title } : {}),
+          ...(dto.summary !== undefined ? { summary: dto.summary } : {}),
+          ...(dto.content !== undefined ? { content: dto.content } : {}),
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw new NotFoundException(`Post ${id} not found`);
+      }
 
-    if (dto.title !== undefined) {
-      post.title = dto.title;
+      throw error;
     }
-
-    if (dto.summary !== undefined) {
-      post.summary = dto.summary;
-    }
-
-    if (dto.content !== undefined) {
-      post.content = dto.content;
-    }
-
-    post.updatedAt = new Date().toISOString();
-    return post;
   }
 
-  remove(id: number): { message: string } {
-    const index = this.posts.findIndex((item) => item.id === id);
-    if (index === -1) {
-      throw new NotFoundException(`Post ${id} not found`);
-    }
+  async remove(id: number) {
+    try {
+      await this.prisma.post.delete({ where: { id } });
+      return { message: `Post ${id} deleted` };
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw new NotFoundException(`Post ${id} not found`);
+      }
 
-    this.posts.splice(index, 1);
-    return { message: `Post ${id} deleted` };
+      throw error;
+    }
   }
 }

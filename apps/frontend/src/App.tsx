@@ -1,5 +1,6 @@
 import {
   DeleteOutlined,
+  DesktopOutlined,
   EditOutlined,
   EyeOutlined,
   FileTextOutlined,
@@ -18,6 +19,7 @@ import {
   Input,
   List,
   Modal,
+  Segmented,
   Space,
   Spin,
   Tag,
@@ -42,6 +44,8 @@ type PostFormValues = {
   content: string;
 };
 
+type ThemeMode = 'system' | 'light' | 'dark';
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api';
 
 const emptyForm: PostFormValues = {
@@ -52,13 +56,20 @@ const emptyForm: PostFormValues = {
 
 const THEME_STORAGE_KEY = 'blog-system-theme';
 
-const getInitialTheme = () => {
+const getSystemPrefersDark = () => {
   if (typeof window === 'undefined') return false;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+};
+
+const getInitialThemeMode = (): ThemeMode => {
+  if (typeof window === 'undefined') return 'system';
 
   const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-  if (stored) return stored === 'dark';
+  if (stored === 'light' || stored === 'dark' || stored === 'system') {
+    return stored;
+  }
 
-  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  return 'system';
 };
 
 function App() {
@@ -69,7 +80,8 @@ function App() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [isDark, setIsDark] = useState(getInitialTheme);
+  const [themeMode, setThemeMode] = useState<ThemeMode>(getInitialThemeMode);
+  const [systemPrefersDark, setSystemPrefersDark] = useState(getSystemPrefersDark);
 
   const selectedPost = useMemo(
     () => posts.find((post) => post.id === selectedId) ?? null,
@@ -86,6 +98,8 @@ function App() {
         post.summary.toLowerCase().includes(keyword),
     );
   }, [posts, search]);
+
+  const isDark = themeMode === 'dark' || (themeMode === 'system' && systemPrefersDark);
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -120,8 +134,22 @@ function App() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    window.localStorage.setItem(THEME_STORAGE_KEY, isDark ? 'dark' : 'light');
-  }, [isDark]);
+    window.localStorage.setItem(THEME_STORAGE_KEY, themeMode);
+  }, [themeMode]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange = (event: MediaQueryListEvent) => {
+      setSystemPrefersDark(event.matches);
+    };
+
+    mediaQuery.addEventListener('change', onChange);
+    setSystemPrefersDark(mediaQuery.matches);
+
+    return () => mediaQuery.removeEventListener('change', onChange);
+  }, []);
 
   const startCreate = () => {
     setMode('create');
@@ -246,18 +274,42 @@ function App() {
                   博客管理台
                 </Typography.Title>
                 <Typography.Text className="!text-blue-100">
-                  Ant Design + Tailwind 版前端 UI，支持亮色/深色模式切换。
+                  Ant Design + Tailwind 版前端 UI，支持跟随系统/手动切换主题。
                 </Typography.Text>
               </div>
 
               <Space wrap>
-                <Button
-                  icon={isDark ? <SunOutlined /> : <MoonOutlined />}
-                  onClick={() => setIsDark((value) => !value)}
-                  className="!border-white/40 !bg-white/10 !text-white hover:!bg-white/20"
-                >
-                  {isDark ? '浅色模式' : '深色模式'}
-                </Button>
+                <Segmented<ThemeMode>
+                  value={themeMode}
+                  onChange={(value) => setThemeMode(value as ThemeMode)}
+                  options={[
+                    {
+                      label: (
+                        <span className="inline-flex items-center gap-1">
+                          <DesktopOutlined /> 跟随系统
+                        </span>
+                      ),
+                      value: 'system',
+                    },
+                    {
+                      label: (
+                        <span className="inline-flex items-center gap-1">
+                          <SunOutlined /> 浅色
+                        </span>
+                      ),
+                      value: 'light',
+                    },
+                    {
+                      label: (
+                        <span className="inline-flex items-center gap-1">
+                          <MoonOutlined /> 深色
+                        </span>
+                      ),
+                      value: 'dark',
+                    },
+                  ]}
+                  className="!bg-white/15 [&_.ant-segmented-item-selected]:!bg-white [&_.ant-segmented-item-selected]:!text-blue-600 [&_.ant-segmented-item-label]:!text-white"
+                />
                 <Button
                   icon={<ReloadOutlined />}
                   onClick={() => void fetchPosts()}

@@ -1,4 +1,4 @@
-import { ArrowLeftOutlined, DeleteOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import { Button, Card, Empty, Modal, Skeleton, Space, Tag, Typography, message } from 'antd';
 import { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -67,9 +67,14 @@ function PostDetailPage() {
               <Button icon={<ArrowLeftOutlined />}>返回列表</Button>
             </Link>
             {post ? (
-              <Button danger icon={<DeleteOutlined />} onClick={handleDelete}>
-                删除文章
-              </Button>
+              <>
+                <Link to={`/posts/${post.id}/edit`}>
+                  <Button icon={<EditOutlined />}>编辑文章</Button>
+                </Link>
+                <Button danger icon={<DeleteOutlined />} onClick={handleDelete}>
+                  删除文章
+                </Button>
+              </>
             ) : null}
           </Space>
 

@@ -5,6 +5,7 @@ import RouteFallback from './components/RouteFallback';
 const PostListPage = lazy(() => import('./pages/posts/PostListPage'));
 const PostCreatePage = lazy(() => import('./pages/posts/PostCreatePage'));
 const PostDetailPage = lazy(() => import('./pages/posts/PostDetailPage'));
+const PostEditPage = lazy(() => import('./pages/posts/PostEditPage'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
         <Route path="/" element={<PostListPage />} />
         <Route path="/posts/new" element={<PostCreatePage />} />
         <Route path="/posts/:id" element={<PostDetailPage />} />
+        <Route path="/posts/:id/edit" element={<PostEditPage />} />
         <Route path="/blog" element={<Navigate to="/" replace />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

@@ -3,13 +3,16 @@ import {
   EditOutlined,
   EyeOutlined,
   FileTextOutlined,
+  MoonOutlined,
   PlusOutlined,
   ReloadOutlined,
   SaveOutlined,
+  SunOutlined,
 } from '@ant-design/icons';
 import {
   Button,
   Card,
+  ConfigProvider,
   Empty,
   Form,
   Input,
@@ -20,6 +23,7 @@ import {
   Tag,
   Typography,
   message,
+  theme as antdTheme,
 } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -46,6 +50,17 @@ const emptyForm: PostFormValues = {
   content: '',
 };
 
+const THEME_STORAGE_KEY = 'blog-system-theme';
+
+const getInitialTheme = () => {
+  if (typeof window === 'undefined') return false;
+
+  const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+  if (stored) return stored === 'dark';
+
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+};
+
 function App() {
   const [form] = Form.useForm<PostFormValues>();
   const [posts, setPosts] = useState<PostItem[]>([]);
@@ -54,6 +69,7 @@ function App() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [isDark, setIsDark] = useState(getInitialTheme);
 
   const selectedPost = useMemo(
     () => posts.find((post) => post.id === selectedId) ?? null,
@@ -100,6 +116,12 @@ function App() {
     void fetchPosts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    window.localStorage.setItem(THEME_STORAGE_KEY, isDark ? 'dark' : 'light');
+  }, [isDark]);
 
   const startCreate = () => {
     setMode('create');
@@ -187,203 +209,251 @@ function App() {
     });
   };
 
+  const getPostItemClasses = (isActive: boolean) => {
+    if (isActive) {
+      return isDark
+        ? 'border-blue-400 bg-blue-500/20 text-slate-100'
+        : 'border-blue-500 bg-blue-50 text-slate-800';
+    }
+
+    return isDark
+      ? 'border-slate-700 bg-slate-900/70 text-slate-100 hover:border-blue-400'
+      : 'border-slate-200 bg-white text-slate-800 hover:border-blue-300';
+  };
+
   return (
-    <div className="min-h-screen bg-slate-100 px-4 py-6 md:px-8 md:py-8">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <Card className="!rounded-2xl !border-0 !bg-gradient-to-r !from-blue-600 !to-cyan-500 !shadow-lg">
-          <div className="flex flex-wrap items-center justify-between gap-3 text-white">
-            <div>
-              <Typography.Title level={3} className="!mb-1 !text-white">
-                博客管理台
-              </Typography.Title>
-              <Typography.Text className="!text-blue-100">
-                Ant Design + Tailwind 版前端 UI，支持文章 CRUD。
-              </Typography.Text>
+    <ConfigProvider
+      theme={{
+        algorithm: isDark
+          ? antdTheme.darkAlgorithm
+          : antdTheme.defaultAlgorithm,
+        token: {
+          borderRadius: 12,
+          colorPrimary: '#2563eb',
+        },
+      }}
+    >
+      <div
+        className={`min-h-screen px-4 py-6 transition-colors md:px-8 md:py-8 ${
+          isDark ? 'bg-slate-950' : 'bg-slate-100'
+        }`}
+      >
+        <div className="mx-auto max-w-7xl space-y-6">
+          <Card className="!rounded-2xl !border-0 !bg-gradient-to-r !from-blue-600 !to-cyan-500 !shadow-lg">
+            <div className="flex flex-wrap items-center justify-between gap-3 text-white">
+              <div>
+                <Typography.Title level={3} className="!mb-1 !text-white">
+                  博客管理台
+                </Typography.Title>
+                <Typography.Text className="!text-blue-100">
+                  Ant Design + Tailwind 版前端 UI，支持亮色/深色模式切换。
+                </Typography.Text>
+              </div>
+
+              <Space wrap>
+                <Button
+                  icon={isDark ? <SunOutlined /> : <MoonOutlined />}
+                  onClick={() => setIsDark((value) => !value)}
+                  className="!border-white/40 !bg-white/10 !text-white hover:!bg-white/20"
+                >
+                  {isDark ? '浅色模式' : '深色模式'}
+                </Button>
+                <Button
+                  icon={<ReloadOutlined />}
+                  onClick={() => void fetchPosts()}
+                  className="!border-white/40 !bg-white/10 !text-white hover:!bg-white/20"
+                >
+                  刷新
+                </Button>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={startCreate}
+                  className="!border-0 !bg-white !text-blue-600"
+                >
+                  新建文章
+                </Button>
+              </Space>
             </div>
-            <Space>
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={() => void fetchPosts()}
-                className="!border-white/40 !bg-white/10 !text-white hover:!bg-white/20"
-              >
-                刷新
-              </Button>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={startCreate}
-                className="!border-0 !bg-white !text-blue-600"
-              >
-                新建文章
-              </Button>
-            </Space>
-          </div>
-        </Card>
-
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[340px_1fr]">
-          <Card
-            title="文章列表"
-            className="!rounded-2xl !border-0 !shadow-sm"
-            extra={<Tag color="blue">{posts.length} 篇</Tag>}
-          >
-            <Space direction="vertical" size={12} className="!w-full">
-              <Input.Search
-                placeholder="搜索标题或摘要"
-                allowClear
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-
-              <Spin spinning={loading}>
-                {filteredPosts.length ? (
-                  <List
-                    dataSource={filteredPosts}
-                    renderItem={(post) => (
-                      <List.Item className="!px-0">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedId(post.id);
-                            setMode('view');
-                          }}
-                          className={`w-full rounded-xl border px-3 py-2 text-left transition ${
-                            selectedId === post.id
-                              ? 'border-blue-500 bg-blue-50'
-                              : 'border-slate-200 bg-white hover:border-blue-300'
-                          }`}
-                        >
-                          <div className="mb-1 line-clamp-1 font-semibold text-slate-800">
-                            {post.title}
-                          </div>
-                          <div className="line-clamp-2 text-xs text-slate-500">
-                            {post.summary}
-                          </div>
-                        </button>
-                      </List.Item>
-                    )}
-                  />
-                ) : (
-                  <Empty description="暂无匹配文章" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-                )}
-              </Spin>
-            </Space>
           </Card>
 
-          <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[340px_1fr]">
             <Card
+              title="文章列表"
               className="!rounded-2xl !border-0 !shadow-sm"
-              title={
-                <Space>
-                  <EyeOutlined />
-                  文章详情
-                </Space>
-              }
-              extra={
-                selectedPost ? (
-                  <Space>
-                    <Button icon={<EditOutlined />} onClick={startEdit}>
-                      编辑
-                    </Button>
-                    <Button
-                      danger
-                      icon={<DeleteOutlined />}
-                      onClick={handleDelete}
-                    >
-                      删除
-                    </Button>
-                  </Space>
-                ) : null
-              }
+              extra={<Tag color="blue">{posts.length} 篇</Tag>}
             >
-              {selectedPost ? (
-                <div className="space-y-4">
-                  <div>
-                    <Typography.Title level={3} className="!mb-2">
-                      {selectedPost.title}
-                    </Typography.Title>
-                    <Typography.Paragraph className="!mb-1 !text-slate-600">
-                      {selectedPost.summary}
-                    </Typography.Paragraph>
-                    <Space size={6} wrap>
-                      <Tag color="geekblue">ID #{selectedPost.id}</Tag>
-                      <Tag>创建：{new Date(selectedPost.createdAt).toLocaleString()}</Tag>
-                      <Tag>更新：{new Date(selectedPost.updatedAt).toLocaleString()}</Tag>
-                    </Space>
-                  </div>
-
-                  <Card className="!bg-slate-50">
-                    <Typography.Paragraph className="!mb-0 !whitespace-pre-wrap !text-[15px] !leading-7">
-                      {selectedPost.content}
-                    </Typography.Paragraph>
-                  </Card>
-                </div>
-              ) : (
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description="请选择左侧文章，或先新建一篇"
+              <Space direction="vertical" size={12} className="!w-full">
+                <Input.Search
+                  placeholder="搜索标题或摘要"
+                  allowClear
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
                 />
-              )}
+
+                <Spin spinning={loading}>
+                  {filteredPosts.length ? (
+                    <List
+                      dataSource={filteredPosts}
+                      renderItem={(post) => (
+                        <List.Item className="!px-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedId(post.id);
+                              setMode('view');
+                            }}
+                            className={`w-full rounded-xl border px-3 py-2 text-left transition ${getPostItemClasses(
+                              selectedId === post.id,
+                            )}`}
+                          >
+                            <div className="mb-1 line-clamp-1 font-semibold">
+                              {post.title}
+                            </div>
+                            <div
+                              className={`line-clamp-2 text-xs ${
+                                isDark ? 'text-slate-400' : 'text-slate-500'
+                              }`}
+                            >
+                              {post.summary}
+                            </div>
+                          </button>
+                        </List.Item>
+                      )}
+                    />
+                  ) : (
+                    <Empty
+                      description="暂无匹配文章"
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    />
+                  )}
+                </Spin>
+              </Space>
             </Card>
 
-            <Card
-              className="!rounded-2xl !border-0 !shadow-sm"
-              title={
-                <Space>
-                  <FileTextOutlined />
-                  {mode === 'edit' ? '编辑文章' : '写新文章'}
-                </Space>
-              }
-            >
-              <Form<PostFormValues>
-                layout="vertical"
-                form={form}
-                initialValues={emptyForm}
-                onFinish={handleSubmit}
+            <div className="space-y-6">
+              <Card
+                className="!rounded-2xl !border-0 !shadow-sm"
+                title={
+                  <Space>
+                    <EyeOutlined />
+                    文章详情
+                  </Space>
+                }
+                extra={
+                  selectedPost ? (
+                    <Space>
+                      <Button icon={<EditOutlined />} onClick={startEdit}>
+                        编辑
+                      </Button>
+                      <Button danger icon={<DeleteOutlined />} onClick={handleDelete}>
+                        删除
+                      </Button>
+                    </Space>
+                  ) : null
+                }
               >
-                <Form.Item
-                  label="标题"
-                  name="title"
-                  rules={[{ required: true, message: '请输入标题' }]}
-                >
-                  <Input maxLength={120} placeholder="例如：用 NestJS 快速搭建博客 API" />
-                </Form.Item>
+                {selectedPost ? (
+                  <div className="space-y-4">
+                    <div>
+                      <Typography.Title level={3} className="!mb-2">
+                        {selectedPost.title}
+                      </Typography.Title>
+                      <Typography.Paragraph
+                        className={`!mb-1 ${isDark ? '!text-slate-300' : '!text-slate-600'}`}
+                      >
+                        {selectedPost.summary}
+                      </Typography.Paragraph>
+                      <Space size={6} wrap>
+                        <Tag color="geekblue">ID #{selectedPost.id}</Tag>
+                        <Tag>
+                          创建：{new Date(selectedPost.createdAt).toLocaleString()}
+                        </Tag>
+                        <Tag>
+                          更新：{new Date(selectedPost.updatedAt).toLocaleString()}
+                        </Tag>
+                      </Space>
+                    </div>
 
-                <Form.Item
-                  label="摘要"
-                  name="summary"
-                  rules={[{ required: true, message: '请输入摘要' }]}
-                >
-                  <Input maxLength={300} placeholder="一句话说明这篇文章讲什么" />
-                </Form.Item>
-
-                <Form.Item
-                  label="正文"
-                  name="content"
-                  rules={[{ required: true, message: '请输入正文内容' }]}
-                >
-                  <Input.TextArea
-                    rows={10}
-                    placeholder="支持纯文本，可后续升级为 Markdown / 富文本编辑器"
+                    <Card
+                      className={isDark ? '!bg-slate-900/60' : '!bg-slate-50'}
+                    >
+                      <Typography.Paragraph className="!mb-0 !whitespace-pre-wrap !text-[15px] !leading-7">
+                        {selectedPost.content}
+                      </Typography.Paragraph>
+                    </Card>
+                  </div>
+                ) : (
+                  <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    description="请选择左侧文章，或先新建一篇"
                   />
-                </Form.Item>
+                )}
+              </Card>
 
-                <Space>
-                  <Button
-                    type="primary"
-                    htmlType="submit"
-                    loading={submitting}
-                    icon={<SaveOutlined />}
+              <Card
+                className="!rounded-2xl !border-0 !shadow-sm"
+                title={
+                  <Space>
+                    <FileTextOutlined />
+                    {mode === 'edit' ? '编辑文章' : '写新文章'}
+                  </Space>
+                }
+              >
+                <Form<PostFormValues>
+                  layout="vertical"
+                  form={form}
+                  initialValues={emptyForm}
+                  onFinish={handleSubmit}
+                >
+                  <Form.Item
+                    label="标题"
+                    name="title"
+                    rules={[{ required: true, message: '请输入标题' }]}
                   >
-                    {mode === 'edit' ? '保存修改' : '发布文章'}
-                  </Button>
-                  <Button onClick={cancelEdit}>重置</Button>
-                </Space>
-              </Form>
-            </Card>
+                    <Input
+                      maxLength={120}
+                      placeholder="例如：用 NestJS 快速搭建博客 API"
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    label="摘要"
+                    name="summary"
+                    rules={[{ required: true, message: '请输入摘要' }]}
+                  >
+                    <Input maxLength={300} placeholder="一句话说明这篇文章讲什么" />
+                  </Form.Item>
+
+                  <Form.Item
+                    label="正文"
+                    name="content"
+                    rules={[{ required: true, message: '请输入正文内容' }]}
+                  >
+                    <Input.TextArea
+                      rows={10}
+                      placeholder="支持纯文本，可后续升级为 Markdown / 富文本编辑器"
+                    />
+                  </Form.Item>
+
+                  <Space>
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      loading={submitting}
+                      icon={<SaveOutlined />}
+                    >
+                      {mode === 'edit' ? '保存修改' : '发布文章'}
+                    </Button>
+                    <Button onClick={cancelEdit}>重置</Button>
+                  </Space>
+                </Form>
+              </Card>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </ConfigProvider>
   );
 }
 

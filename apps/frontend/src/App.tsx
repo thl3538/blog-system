@@ -51,6 +51,8 @@ type PostsListResponse = {
   page: number;
   pageSize: number;
   totalPages: number;
+  sortBy?: 'createdAt' | 'title';
+  order?: 'asc' | 'desc';
 };
 
 type ThemeMode = 'system' | 'light' | 'dark';
@@ -96,6 +98,8 @@ function App() {
     pageSize: 10,
     total: 0,
   });
+  const [sortBy, setSortBy] = useState<'createdAt' | 'title'>('createdAt');
+  const [order, setOrder] = useState<'asc' | 'desc'>('desc');
 
   const selectedPost = useMemo(
     () => posts.find((post) => post.id === selectedId) ?? null,
@@ -108,10 +112,14 @@ function App() {
     page?: number;
     pageSize?: number;
     keyword?: string;
+    sortBy?: 'createdAt' | 'title';
+    order?: 'asc' | 'desc';
   }) => {
     const nextPage = params?.page ?? pagination.page;
     const nextPageSize = params?.pageSize ?? pagination.pageSize;
     const nextKeyword = params?.keyword ?? search;
+    const nextSortBy = params?.sortBy ?? sortBy;
+    const nextOrder = params?.order ?? order;
 
     setLoading(true);
 
@@ -119,6 +127,8 @@ function App() {
       const query = new URLSearchParams({
         page: String(nextPage),
         pageSize: String(nextPageSize),
+        sortBy: nextSortBy,
+        order: nextOrder,
       });
 
       if (nextKeyword.trim()) {
@@ -135,6 +145,8 @@ function App() {
         pageSize: data.pageSize,
         total: data.total,
       });
+      setSortBy(data.sortBy ?? nextSortBy);
+      setOrder(data.order ?? nextOrder);
 
       if (!data.items.length) {
         setSelectedId(null);
@@ -152,7 +164,13 @@ function App() {
   };
 
   useEffect(() => {
-    void fetchPosts({ page: 1, pageSize: pagination.pageSize, keyword: '' });
+    void fetchPosts({
+      page: 1,
+      pageSize: pagination.pageSize,
+      keyword: '',
+      sortBy,
+      order,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -374,6 +392,48 @@ function App() {
                     });
                   }}
                 />
+
+                <Space wrap size={8}>
+                  <Segmented<'createdAt' | 'title'>
+                    size="small"
+                    value={sortBy}
+                    onChange={(value) => {
+                      const next = value as 'createdAt' | 'title';
+                      setSortBy(next);
+                      void fetchPosts({
+                        page: 1,
+                        pageSize: pagination.pageSize,
+                        keyword: search,
+                        sortBy: next,
+                        order,
+                      });
+                    }}
+                    options={[
+                      { label: '按创建时间', value: 'createdAt' },
+                      { label: '按标题', value: 'title' },
+                    ]}
+                  />
+
+                  <Segmented<'asc' | 'desc'>
+                    size="small"
+                    value={order}
+                    onChange={(value) => {
+                      const next = value as 'asc' | 'desc';
+                      setOrder(next);
+                      void fetchPosts({
+                        page: 1,
+                        pageSize: pagination.pageSize,
+                        keyword: search,
+                        sortBy,
+                        order: next,
+                      });
+                    }}
+                    options={[
+                      { label: '升序', value: 'asc' },
+                      { label: '降序', value: 'desc' },
+                    ]}
+                  />
+                </Space>
 
                 <Spin spinning={loading}>
                   {posts.length ? (

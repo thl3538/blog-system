@@ -1,5 +1,12 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 
 export class FindPostsDto {
   @IsOptional()
@@ -18,4 +25,12 @@ export class FindPostsDto {
   @IsOptional()
   @IsString()
   keyword?: string;
+
+  @IsOptional()
+  @IsIn(['createdAt', 'title'])
+  sortBy?: 'createdAt' | 'title' = 'createdAt';
+
+  @IsOptional()
+  @IsIn(['asc', 'desc'])
+  order?: 'asc' | 'desc' = 'desc';
 }

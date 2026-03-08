@@ -13,6 +13,8 @@ export class PostsService {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 10;
     const keyword = query.keyword?.trim();
+    const sortBy = query.sortBy ?? 'createdAt';
+    const order = query.order ?? 'desc';
 
     const where: Prisma.PostWhereInput | undefined = keyword
       ? {
@@ -27,7 +29,7 @@ export class PostsService {
     const [items, total] = await this.prisma.$transaction([
       this.prisma.post.findMany({
         where,
-        orderBy: { id: 'desc' },
+        orderBy: { [sortBy]: order },
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
@@ -39,6 +41,8 @@ export class PostsService {
       total,
       page,
       pageSize,
+      sortBy,
+      order,
       totalPages: Math.ceil(total / pageSize),
     };
   }

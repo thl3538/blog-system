@@ -72,7 +72,7 @@ API 前缀：`/api`
 - `POST /api/auth/register`
 - `POST /api/auth/login`
 - `GET /api/auth/me`（需 Bearer Token）
-- `GET /api/posts?page=1&pageSize=10&keyword=nest`
+- `GET /api/posts?page=1&pageSize=10&keyword=nest&sortBy=createdAt&order=desc`
 - `GET /api/posts/:id`
 - `POST /api/posts`（需登录，角色：ADMIN/EDITOR/AUTHOR）
 - `PATCH /api/posts/:id`（需登录，角色：ADMIN/EDITOR）

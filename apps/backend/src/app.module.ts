@@ -7,6 +7,7 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { RolesGuard } from './common/guards/roles.guard';
 import { RequestLoggerInterceptor } from './common/interceptors/request-logger.interceptor';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
+import { GuestbookModule } from './guestbook/guestbook.module';
 import { PostsModule } from './posts/posts.module';
 import { PrismaModule } from './prisma/prisma.module';
 
@@ -15,6 +16,7 @@ import { PrismaModule } from './prisma/prisma.module';
     PrismaModule,
     AuthModule,
     PostsModule,
+    GuestbookModule,
     ThrottlerModule.forRoot([
       {
         ttl: 60_000,

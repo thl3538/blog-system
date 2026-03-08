@@ -24,13 +24,45 @@ model User {
 }
 
 model Post {
-  id        Int      @id @default(autoincrement())
-  title     String   @db.VarChar(120)
-  summary   String   @db.VarChar(300)
+  id        Int           @id @default(autoincrement())
+  title     String        @db.VarChar(120)
+  summary   String        @db.VarChar(300)
   content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  likes     PostLike[]
+  comments  PostComment[]
 
   @@index([createdAt])
   @@index([title])
+}
+
+model PostLike {
+  id        Int      @id @default(autoincrement())
+  postId    Int
+  visitorId String   @db.VarChar(80)
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, visitorId])
+  @@index([postId])
+}
+
+model PostComment {
+  id        Int      @id @default(autoincrement())
+  postId    Int
+  nickname  String   @db.VarChar(80)
+  content   String   @db.VarChar(1000)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+}
+
+model GuestbookMessage {
+  id        Int      @id @default(autoincrement())
+  nickname  String   @db.VarChar(80)
+  content   String   @db.VarChar(1000)
+  createdAt DateTime @default(now())
 }

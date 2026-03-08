@@ -5,6 +5,8 @@ export type PostItem = {
   content: string;
   createdAt: string;
   updatedAt: string;
+  likesCount: number;
+  commentsCount: number;
 };
 
 export type PostListQuery = {
@@ -28,5 +30,24 @@ export type PostListResponse = {
 export type PostPayload = {
   title: string;
   summary: string;
+  content: string;
+};
+
+export type LikeState = {
+  count: number;
+  liked: boolean;
+};
+
+export type PostComment = {
+  id: number;
+  postId: number;
+  nickname: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateCommentPayload = {
+  nickname: string;
   content: string;
 };

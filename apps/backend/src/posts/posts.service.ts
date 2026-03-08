@@ -1,13 +1,32 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateCommentDto } from './dto/create-comment.dto';
 import { CreatePostDto } from './dto/create-post.dto';
 import { FindPostsDto } from './dto/find-posts.dto';
+import { ToggleLikeDto } from './dto/toggle-like.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 
 @Injectable()
 export class PostsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private normalizePost(
+    post: Prisma.PostGetPayload<{
+      include: { _count: { select: { likes: true; comments: true } } };
+    }>,
+  ) {
+    return {
+      id: post.id,
+      title: post.title,
+      summary: post.summary,
+      content: post.content,
+      createdAt: post.createdAt,
+      updatedAt: post.updatedAt,
+      likesCount: post._count.likes,
+      commentsCount: post._count.comments,
+    };
+  }
 
   async findAll(query: FindPostsDto) {
     const page = query.page ?? 1;
@@ -29,6 +48,14 @@ export class PostsService {
     const [items, total] = await this.prisma.$transaction([
       this.prisma.post.findMany({
         where,
+        include: {
+          _count: {
+            select: {
+              likes: true,
+              comments: true,
+            },
+          },
+        },
         orderBy: { [sortBy]: order },
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -37,7 +64,7 @@ export class PostsService {
     ]);
 
     return {
-      items,
+      items: items.map((item) => this.normalizePost(item)),
       total,
       page,
       pageSize,
@@ -48,34 +75,65 @@ export class PostsService {
   }
 
   async findOne(id: number) {
-    const post = await this.prisma.post.findUnique({ where: { id } });
+    const post = await this.prisma.post.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: {
+            likes: true,
+            comments: true,
+          },
+        },
+      },
+    });
+
     if (!post) {
       throw new NotFoundException(`Post ${id} not found`);
     }
 
-    return post;
+    return this.normalizePost(post);
   }
 
-  create(dto: CreatePostDto) {
-    return this.prisma.post.create({
+  async create(dto: CreatePostDto) {
+    const created = await this.prisma.post.create({
       data: {
         title: dto.title,
         summary: dto.summary,
         content: dto.content,
       },
+      include: {
+        _count: {
+          select: {
+            likes: true,
+            comments: true,
+          },
+        },
+      },
     });
+
+    return this.normalizePost(created);
   }
 
   async update(id: number, dto: UpdatePostDto) {
     try {
-      return await this.prisma.post.update({
+      const updated = await this.prisma.post.update({
         where: { id },
         data: {
           ...(dto.title !== undefined ? { title: dto.title } : {}),
           ...(dto.summary !== undefined ? { summary: dto.summary } : {}),
           ...(dto.content !== undefined ? { content: dto.content } : {}),
         },
+        include: {
+          _count: {
+            select: {
+              likes: true,
+              comments: true,
+            },
+          },
+        },
       });
+
+      return this.normalizePost(updated);
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -101,6 +159,92 @@ export class PostsService {
       }
 
       throw error;
+    }
+  }
+
+  async getLikeState(postId: number, visitorId?: string) {
+    await this.ensurePostExists(postId);
+
+    const count = await this.prisma.postLike.count({ where: { postId } });
+    const liked = visitorId
+      ? await this.prisma.postLike.findUnique({
+          where: {
+            postId_visitorId: {
+              postId,
+              visitorId,
+            },
+          },
+        })
+      : null;
+
+    return {
+      count,
+      liked: Boolean(liked),
+    };
+  }
+
+  async like(postId: number, dto: ToggleLikeDto) {
+    await this.ensurePostExists(postId);
+
+    const visitorId = dto.visitorId.trim();
+
+    await this.prisma.postLike.upsert({
+      where: {
+        postId_visitorId: {
+          postId,
+          visitorId,
+        },
+      },
+      create: {
+        postId,
+        visitorId,
+      },
+      update: {},
+    });
+
+    return this.getLikeState(postId, visitorId);
+  }
+
+  async unlike(postId: number, dto: ToggleLikeDto) {
+    await this.ensurePostExists(postId);
+    const visitorId = dto.visitorId.trim();
+
+    await this.prisma.postLike.deleteMany({
+      where: {
+        postId,
+        visitorId,
+      },
+    });
+
+    return this.getLikeState(postId, visitorId);
+  }
+
+  async listComments(postId: number) {
+    await this.ensurePostExists(postId);
+
+    return this.prisma.postComment.findMany({
+      where: { postId },
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+    });
+  }
+
+  async addComment(postId: number, dto: CreateCommentDto) {
+    await this.ensurePostExists(postId);
+
+    return this.prisma.postComment.create({
+      data: {
+        postId,
+        nickname: dto.nickname.trim(),
+        content: dto.content.trim(),
+      },
+    });
+  }
+
+  private async ensurePostExists(postId: number) {
+    const exists = await this.prisma.post.count({ where: { id: postId } });
+    if (!exists) {
+      throw new NotFoundException(`Post ${postId} not found`);
     }
   }
 }

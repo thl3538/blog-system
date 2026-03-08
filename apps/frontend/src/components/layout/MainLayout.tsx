@@ -6,6 +6,7 @@ import { Link, useLocation } from 'react-router-dom';
 const navItems = [
   { path: '/', label: '首页', icon: <ReadOutlined /> },
   { path: '/posts/new', label: '写文章', icon: <PlusOutlined /> },
+  { path: '/guestbook', label: '留言', icon: <ReadOutlined /> },
 ];
 
 function MainLayout({ children }: PropsWithChildren) {

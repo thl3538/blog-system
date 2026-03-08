@@ -1,5 +1,8 @@
 import { request } from '../lib/http';
 import type {
+  CreateCommentPayload,
+  LikeState,
+  PostComment,
   PostItem,
   PostListQuery,
   PostListResponse,
@@ -54,6 +57,44 @@ export const postsApi = {
     return request<{ message: string }>({
       url: `/posts/${id}`,
       method: 'DELETE',
+    });
+  },
+
+  getLikeState(id: number, visitorId: string) {
+    return request<LikeState>({
+      url: `/posts/${id}/likes?visitorId=${encodeURIComponent(visitorId)}`,
+      method: 'GET',
+    });
+  },
+
+  like(id: number, visitorId: string) {
+    return request<LikeState>({
+      url: `/posts/${id}/likes`,
+      method: 'POST',
+      data: { visitorId },
+    });
+  },
+
+  unlike(id: number, visitorId: string) {
+    return request<LikeState>({
+      url: `/posts/${id}/likes`,
+      method: 'DELETE',
+      data: { visitorId },
+    });
+  },
+
+  listComments(id: number) {
+    return request<PostComment[]>({
+      url: `/posts/${id}/comments`,
+      method: 'GET',
+    });
+  },
+
+  addComment(id: number, payload: CreateCommentPayload) {
+    return request<PostComment>({
+      url: `/posts/${id}/comments`,
+      method: 'POST',
+      data: payload,
     });
   },
 };

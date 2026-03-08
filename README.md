@@ -6,6 +6,7 @@
 - 后端：NestJS + Prisma + JWT + RBAC
 - 数据库：MySQL
 - 编辑体验：集成开源 Markdown 编辑器（@uiw/react-md-editor）、插图、自动本地草稿
+- 互动功能：点赞、评论、留言
 - 工程化：GitHub Actions CI、Dockerfile、一键部署脚本
 
 ## 项目结构
@@ -71,6 +72,13 @@ npm run dev:frontend
 - `POST /api/posts`（需登录，角色：ADMIN/EDITOR/AUTHOR）
 - `PATCH /api/posts/:id`（需登录，角色：ADMIN/EDITOR）
 - `DELETE /api/posts/:id`（需登录，角色：ADMIN/EDITOR）
+- `GET /api/posts/:id/likes?visitorId=visitor_xxx`
+- `POST /api/posts/:id/likes`
+- `DELETE /api/posts/:id/likes`
+- `GET /api/posts/:id/comments`
+- `POST /api/posts/:id/comments`
+- `GET /api/guestbook/messages`
+- `POST /api/guestbook/messages`
 
 ## 工程化（第5步）
 

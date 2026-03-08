@@ -1,4 +1,4 @@
-import { ClockCircleOutlined } from '@ant-design/icons';
+import { ClockCircleOutlined, CommentOutlined, LikeOutlined } from '@ant-design/icons';
 import { Card, Empty, Input, Pagination, Segmented, Skeleton, Space, Typography, message } from 'antd';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -119,6 +119,12 @@ function PostListPage() {
                           {new Date(post.createdAt).toLocaleString()}
                         </span>
                         <span>ID #{post.id}</span>
+                        <span>
+                          <LikeOutlined /> {post.likesCount}
+                        </span>
+                        <span>
+                          <CommentOutlined /> {post.commentsCount}
+                        </span>
                       </Space>
                     </Card>
                   </Link>

@@ -5,7 +5,7 @@
 - 前端：React + Vite + TypeScript
 - 后端：NestJS + Prisma
 - 数据库：MySQL
-- 功能：文章列表、发布、编辑、删除
+- 功能：文章列表、发布、编辑、删除、JWT 登录鉴权、角色权限控制
 
 ## 项目结构
 
@@ -45,6 +45,12 @@ mysql://root:password@localhost:3306/blog_system
 cp apps/backend/.env.example apps/backend/.env
 ```
 
+可按需修改：
+
+- `JWT_SECRET`：JWT 签名密钥（生产环境务必改成强随机）
+- `JWT_EXPIRES_IN`：token 过期时间（默认 `7d`）
+- `CORS_ORIGIN`：允许跨域来源，可用逗号分隔多个域名
+
 ## 4) 生成 Prisma Client + 同步表结构（不使用 migration）
 
 ```bash
@@ -63,11 +69,14 @@ npm run dev:backend
 API 前缀：`/api`
 
 - `GET /api/health`
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/auth/me`（需 Bearer Token）
 - `GET /api/posts?page=1&pageSize=10&keyword=nest`
 - `GET /api/posts/:id`
-- `POST /api/posts`
-- `PATCH /api/posts/:id`
-- `DELETE /api/posts/:id`
+- `POST /api/posts`（需登录，角色：ADMIN/EDITOR/AUTHOR）
+- `PATCH /api/posts/:id`（需登录，角色：ADMIN/EDITOR）
+- `DELETE /api/posts/:id`（需登录，角色：ADMIN/EDITOR）
 
 ## 6) 启动前端
 

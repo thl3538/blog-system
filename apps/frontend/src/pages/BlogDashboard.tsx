@@ -9,6 +9,7 @@ import {
   ReloadOutlined,
   SaveOutlined,
   SunOutlined,
+  UploadOutlined,
 } from '@ant-design/icons';
 import {
   Alert,
@@ -26,10 +27,13 @@ import {
   Space,
   Tag,
   Typography,
+  Upload,
   message,
   theme as antdTheme,
 } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 type PostItem = {
   id: number;
@@ -57,6 +61,7 @@ type PostsListResponse = {
 };
 
 type ThemeMode = 'system' | 'light' | 'dark';
+type EditorTab = 'write' | 'preview';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api';
 
@@ -67,6 +72,7 @@ const emptyForm: PostFormValues = {
 };
 
 const THEME_STORAGE_KEY = 'blog-system-theme';
+const DRAFT_STORAGE_PREFIX = 'blog-system-draft';
 
 const getSystemPrefersDark = () => {
   if (typeof window === 'undefined') return false;
@@ -84,8 +90,48 @@ const getInitialThemeMode = (): ThemeMode => {
   return 'system';
 };
 
-function App() {
+const getDraftStorageKey = (mode: 'view' | 'create' | 'edit', selectedId: number | null) => {
+  if (mode === 'edit' && selectedId) {
+    return `${DRAFT_STORAGE_PREFIX}:edit:${selectedId}`;
+  }
+
+  return `${DRAFT_STORAGE_PREFIX}:create`;
+};
+
+const renderMarkdown = (content: string) => (
+  <ReactMarkdown
+    remarkPlugins={[remarkGfm]}
+    components={{
+      p: ({ children }) => <p className="mb-3 leading-7">{children}</p>,
+      ul: ({ children }) => <ul className="mb-3 list-disc pl-6">{children}</ul>,
+      ol: ({ children }) => <ol className="mb-3 list-decimal pl-6">{children}</ol>,
+      h1: ({ children }) => <h1 className="mb-3 text-2xl font-semibold">{children}</h1>,
+      h2: ({ children }) => <h2 className="mb-3 text-xl font-semibold">{children}</h2>,
+      h3: ({ children }) => <h3 className="mb-2 text-lg font-semibold">{children}</h3>,
+      code: ({ children }) => (
+        <code className="rounded bg-black/10 px-1.5 py-0.5 text-sm">{children}</code>
+      ),
+      pre: ({ children }) => (
+        <pre className="mb-3 overflow-x-auto rounded-lg bg-black/10 p-3 text-sm">{children}</pre>
+      ),
+      img: ({ src, alt }) => (
+        <img
+          src={src ?? ''}
+          alt={alt ?? ''}
+          className="my-3 max-h-[360px] rounded-lg border border-slate-200 object-contain"
+        />
+      ),
+    }}
+  >
+    {content}
+  </ReactMarkdown>
+);
+
+function BlogDashboard() {
   const [form] = Form.useForm<PostFormValues>();
+  const watchedForm = Form.useWatch([], form) as PostFormValues | undefined;
+  const watchedContent = Form.useWatch('content', form) ?? '';
+
   const [posts, setPosts] = useState<PostItem[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [mode, setMode] = useState<'view' | 'create' | 'edit'>('view');
@@ -102,6 +148,8 @@ function App() {
   });
   const [sortBy, setSortBy] = useState<'createdAt' | 'title'>('createdAt');
   const [order, setOrder] = useState<'asc' | 'desc'>('desc');
+  const [editorTab, setEditorTab] = useState<EditorTab>('write');
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
 
   const selectedPost = useMemo(
     () => posts.find((post) => post.id === selectedId) ?? null,
@@ -109,6 +157,30 @@ function App() {
   );
 
   const isDark = themeMode === 'dark' || (themeMode === 'system' && systemPrefersDark);
+  const currentDraftKey = useMemo(
+    () => getDraftStorageKey(mode, selectedId),
+    [mode, selectedId],
+  );
+
+  const loadDraft = (key: string): PostFormValues | null => {
+    if (typeof window === 'undefined') return null;
+
+    try {
+      const raw = window.localStorage.getItem(key);
+      if (!raw) return null;
+
+      const parsed = JSON.parse(raw) as PostFormValues;
+      if (!parsed || typeof parsed !== 'object') return null;
+
+      return {
+        title: parsed.title ?? '',
+        summary: parsed.summary ?? '',
+        content: parsed.content ?? '',
+      };
+    } catch {
+      return null;
+    }
+  };
 
   const fetchPosts = async (params?: {
     page?: number;
@@ -199,20 +271,53 @@ function App() {
     return () => mediaQuery.removeEventListener('change', onChange);
   }, []);
 
+  useEffect(() => {
+    if (mode === 'view' || !watchedForm) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      if (typeof window === 'undefined') return;
+      window.localStorage.setItem(currentDraftKey, JSON.stringify(watchedForm));
+      setDraftSavedAt(new Date().toLocaleTimeString());
+    }, 800);
+
+    return () => window.clearTimeout(timer);
+  }, [watchedForm, mode, currentDraftKey]);
+
   const startCreate = () => {
     setMode('create');
-    form.setFieldsValue(emptyForm);
+    setEditorTab('write');
+
+    const draft = loadDraft(getDraftStorageKey('create', null));
+    form.setFieldsValue(draft ?? emptyForm);
+    setDraftSavedAt(null);
+
+    if (draft?.title || draft?.summary || draft?.content) {
+      message.info('已恢复未发布草稿');
+    }
   };
 
   const startEdit = () => {
     if (!selectedPost) return;
 
-    setMode('edit');
-    form.setFieldsValue({
+    const base: PostFormValues = {
       title: selectedPost.title,
       summary: selectedPost.summary,
       content: selectedPost.content,
-    });
+    };
+
+    setMode('edit');
+    setEditorTab('write');
+
+    const editDraftKey = getDraftStorageKey('edit', selectedPost.id);
+    const draft = loadDraft(editDraftKey);
+    form.setFieldsValue(draft ?? base);
+    setDraftSavedAt(null);
+
+    if (draft?.title || draft?.summary || draft?.content) {
+      message.info('已恢复该文章的本地草稿');
+    }
   };
 
   const cancelEdit = () => {
@@ -221,6 +326,9 @@ function App() {
     } else {
       setMode('create');
     }
+
+    setEditorTab('write');
+    setDraftSavedAt(null);
     form.setFieldsValue(emptyForm);
   };
 
@@ -248,15 +356,35 @@ function App() {
 
       const saved = (await response.json()) as PostItem;
       message.success(isEdit ? '文章已更新' : '文章已发布');
+
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem(currentDraftKey);
+      }
+
       await fetchPosts();
       setSelectedId(saved.id);
       setMode('view');
+      setEditorTab('write');
+      setDraftSavedAt(null);
       form.setFieldsValue(emptyForm);
     } catch (error) {
       message.error(error instanceof Error ? error.message : '提交失败');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const insertImageToMarkdown = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result ?? '');
+      const current = form.getFieldValue('content') ?? '';
+      const next = `${current}${current ? '\n\n' : ''}![${file.name}](${dataUrl})`;
+      form.setFieldValue('content', next);
+      setEditorTab('write');
+      message.success('图片已插入 Markdown');
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleDelete = () => {
@@ -567,12 +695,8 @@ function App() {
                       </Space>
                     </div>
 
-                    <Card
-                      className={isDark ? '!bg-slate-900/60' : '!bg-slate-50'}
-                    >
-                      <Typography.Paragraph className="!mb-0 !whitespace-pre-wrap !text-[15px] !leading-7">
-                        {selectedPost.content}
-                      </Typography.Paragraph>
+                    <Card className={isDark ? '!bg-slate-900/60' : '!bg-slate-50'}>
+                      <div className="text-[15px]">{renderMarkdown(selectedPost.content)}</div>
                     </Card>
                   </div>
                 ) : (
@@ -590,6 +714,13 @@ function App() {
                     <FileTextOutlined />
                     {mode === 'edit' ? '编辑文章' : '写新文章'}
                   </Space>
+                }
+                extra={
+                  draftSavedAt ? (
+                    <Typography.Text type="secondary" className="text-xs">
+                      草稿已保存：{draftSavedAt}
+                    </Typography.Text>
+                  ) : null
                 }
               >
                 <Form<PostFormValues>
@@ -617,16 +748,48 @@ function App() {
                     <Input maxLength={300} placeholder="一句话说明这篇文章讲什么" />
                   </Form.Item>
 
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                    <Segmented<EditorTab>
+                      value={editorTab}
+                      onChange={(value) => setEditorTab(value as EditorTab)}
+                      options={[
+                        { label: '编辑', value: 'write' },
+                        { label: '预览', value: 'preview' },
+                      ]}
+                    />
+
+                    <Upload
+                      showUploadList={false}
+                      beforeUpload={(file) => {
+                        insertImageToMarkdown(file as File);
+                        return false;
+                      }}
+                    >
+                      <Button icon={<UploadOutlined />}>插入图片</Button>
+                    </Upload>
+                  </div>
+
                   <Form.Item
-                    label="正文"
+                    label="正文（Markdown）"
                     name="content"
                     rules={[{ required: true, message: '请输入正文内容' }]}
                   >
                     <Input.TextArea
-                      rows={10}
-                      placeholder="支持纯文本，可后续升级为 Markdown / 富文本编辑器"
+                      rows={14}
+                      className={editorTab === 'write' ? '' : '!hidden'}
+                      placeholder="支持 Markdown，例如：# 标题、- 列表、```代码块```"
                     />
                   </Form.Item>
+
+                  {editorTab === 'preview' ? (
+                    <Card className={isDark ? '!bg-slate-900/60 !mb-6' : '!bg-slate-50 !mb-6'}>
+                      {watchedContent.trim() ? (
+                        <div className="text-[15px]">{renderMarkdown(watchedContent)}</div>
+                      ) : (
+                        <Typography.Text type="secondary">暂无内容可预览</Typography.Text>
+                      )}
+                    </Card>
+                  ) : null}
 
                   <Space>
                     <Button
@@ -649,4 +812,4 @@ function App() {
   );
 }
 
-export default App;
+export default BlogDashboard;

@@ -1,7 +1,17 @@
 import { ArrowLeftOutlined, SaveOutlined } from '@ant-design/icons';
-import { Button, Card, Form, Input, Space, Tabs, Typography, Upload, message } from 'antd';
-import { useEffect, useMemo, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
+import {
+  Button,
+  Card,
+  Form,
+  Input,
+  Segmented,
+  Space,
+  Typography,
+  Upload,
+  message,
+} from 'antd';
+import MDEditor from '@uiw/react-md-editor';
+import { useEffect, useState } from 'react';
 import remarkGfm from 'remark-gfm';
 import { Link, useNavigate } from 'react-router-dom';
 import { postsApi } from '../../api/posts';
@@ -10,6 +20,7 @@ import { HttpClientError } from '../../lib/http';
 import type { PostPayload } from '../../types/post';
 
 type FormValues = PostPayload;
+type EditorMode = 'live' | 'edit' | 'preview';
 
 const DRAFT_KEY = 'blog-system-draft:create';
 
@@ -19,21 +30,10 @@ function PostCreatePage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [editorMode, setEditorMode] = useState<EditorMode>('live');
 
   const content = Form.useWatch('content', form) ?? '';
   const allValues = Form.useWatch([], form) as FormValues | undefined;
-
-  const preview = useMemo(() => {
-    if (!content.trim()) {
-      return <Typography.Text type="secondary">暂无内容可预览</Typography.Text>;
-    }
-
-    return (
-      <div className="prose max-w-none prose-slate prose-pre:overflow-x-auto">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
-      </div>
-    );
-  }, [content]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -89,7 +89,11 @@ function PostCreatePage() {
       <Card
         className="!border-slate-200 !shadow-none"
         title="写文章"
-        extra={savedAt ? <Typography.Text type="secondary">草稿已保存：{savedAt}</Typography.Text> : null}
+        extra={
+          savedAt ? (
+            <Typography.Text type="secondary">草稿已保存：{savedAt}</Typography.Text>
+          ) : null
+        }
       >
         <Form<FormValues>
           layout="vertical"
@@ -113,7 +117,17 @@ function PostCreatePage() {
             <Input maxLength={300} placeholder="一句话概括这篇文章" />
           </Form.Item>
 
-          <div className="mb-2">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <Segmented<EditorMode>
+              value={editorMode}
+              onChange={(value) => setEditorMode(value as EditorMode)}
+              options={[
+                { label: '分栏预览', value: 'live' },
+                { label: '仅编辑', value: 'edit' },
+                { label: '仅预览', value: 'preview' },
+              ]}
+            />
+
             <Upload
               showUploadList={false}
               beforeUpload={(file) => {
@@ -133,34 +147,22 @@ function PostCreatePage() {
             </Upload>
           </div>
 
-          <Tabs
-            items={[
-              {
-                key: 'write',
-                label: '编辑 Markdown',
-                children: (
-                  <Form.Item
-                    name="content"
-                    rules={[{ required: true, message: '请输入正文内容' }]}
-                  >
-                    <Input.TextArea
-                      rows={16}
-                      placeholder="支持 Markdown：# 标题、- 列表、```代码块```"
-                    />
-                  </Form.Item>
-                ),
-              },
-              {
-                key: 'preview',
-                label: '预览',
-                children: (
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                    {preview}
-                  </div>
-                ),
-              },
-            ]}
-          />
+          <Form.Item
+            label="正文（Markdown）"
+            name="content"
+            rules={[{ required: true, message: '请输入正文内容' }]}
+          >
+            <div data-color-mode="light">
+              <MDEditor
+                value={content}
+                onChange={(value) => form.setFieldValue('content', value ?? '')}
+                preview={editorMode}
+                previewOptions={{ remarkPlugins: [remarkGfm] }}
+                textareaProps={{ placeholder: '支持 Markdown：# 标题、- 列表、```代码块```' }}
+                height={460}
+              />
+            </div>
+          </Form.Item>
 
           <Space>
             <Link to="/">

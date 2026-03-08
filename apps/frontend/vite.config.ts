@@ -10,6 +10,12 @@ export default defineConfig({
         manualChunks: {
           antd: ['antd', '@ant-design/icons'],
           router: ['react-router-dom'],
+          markdown: [
+            '@uiw/react-md-editor',
+            '@uiw/react-markdown-preview',
+            'react-markdown',
+            'remark-gfm',
+          ],
         },
       },
     },

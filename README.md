@@ -5,7 +5,7 @@
 - 前端：React + Vite + TypeScript + Ant Design + Tailwind
 - 后端：NestJS + Prisma + JWT + RBAC
 - 数据库：MySQL
-- 编辑体验：Markdown 编辑/预览、插图、自动本地草稿
+- 编辑体验：集成开源 Markdown 编辑器（@uiw/react-md-editor）、插图、自动本地草稿
 - 工程化：GitHub Actions CI、Dockerfile、一键部署脚本
 
 ## 项目结构

@@ -7,6 +7,7 @@ import {
   LikeOutlined,
 } from '@ant-design/icons';
 import {
+  Avatar,
   Button,
   Card,
   Empty,
@@ -144,53 +145,65 @@ function PostDetailPage() {
 
   return (
     <MainLayout>
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_360px]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[72px_minmax(0,1fr)_300px]">
+        <Card className="sticky top-24 hidden !border-slate-200 !shadow-none xl:block">
+          <Space direction="vertical" className="!w-full" size={10}>
+            <Button
+              type={likeState.liked ? 'primary' : 'default'}
+              shape="circle"
+              icon={likeState.liked ? <LikeFilled /> : <LikeOutlined />}
+              onClick={toggleLike}
+            />
+            <Typography.Text className="text-center text-xs text-slate-500">
+              {likeState.count}
+            </Typography.Text>
+
+            <a href="#comments" className="text-center">
+              <Button shape="circle" icon={<CommentOutlined />} />
+            </a>
+            <Typography.Text className="text-center text-xs text-slate-500">
+              {comments.length}
+            </Typography.Text>
+          </Space>
+        </Card>
+
         <Card className="!border-slate-200 !shadow-none">
           <Space direction="vertical" size={14} className="!w-full">
-            <Space>
+            <Space wrap>
               <Link to="/">
                 <Button icon={<ArrowLeftOutlined />}>返回列表</Button>
               </Link>
               {post ? (
                 <>
                   <Link to={`/posts/${post.id}/edit`}>
-                    <Button icon={<EditOutlined />}>编辑文章</Button>
+                    <Button icon={<EditOutlined />}>编辑</Button>
                   </Link>
                   <Button danger icon={<DeleteOutlined />} onClick={handleDelete}>
-                    删除文章
+                    删除
                   </Button>
                 </>
               ) : null}
             </Space>
 
             {loading ? (
-              <Skeleton active paragraph={{ rows: 10 }} title={{ width: '45%' }} />
+              <Skeleton active paragraph={{ rows: 12 }} title={{ width: '55%' }} />
             ) : post ? (
               <>
                 <Typography.Title level={2} className="!mb-1">
                   {post.title}
                 </Typography.Title>
-                <Typography.Paragraph className="!mb-2 !text-slate-600">
+                <Typography.Paragraph className="!mb-1 !text-slate-600">
                   {post.summary}
                 </Typography.Paragraph>
-                <Space wrap>
-                  <Tag color="blue">ID #{post.id}</Tag>
-                  <Tag>创建：{new Date(post.createdAt).toLocaleString()}</Tag>
-                  <Tag>更新：{new Date(post.updatedAt).toLocaleString()}</Tag>
+                <Space wrap className="!text-xs !text-slate-500">
+                  <span>发布于 {new Date(post.createdAt).toLocaleString()}</span>
+                  <span>·</span>
+                  <span>更新于 {new Date(post.updatedAt).toLocaleString()}</span>
+                  <Tag color="blue">点赞 {likeState.count}</Tag>
+                  <Tag color="gold">评论 {comments.length}</Tag>
                 </Space>
 
-                <Space>
-                  <Button
-                    type={likeState.liked ? 'primary' : 'default'}
-                    icon={likeState.liked ? <LikeFilled /> : <LikeOutlined />}
-                    onClick={toggleLike}
-                  >
-                    点赞 {likeState.count}
-                  </Button>
-                  <Tag icon={<CommentOutlined />}>评论 {comments.length}</Tag>
-                </Space>
-
-                <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <div className="mt-2 rounded-lg border border-slate-200 bg-white p-4">
                   <div className="prose max-w-none prose-slate prose-pre:overflow-x-auto">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {post.content}
@@ -205,7 +218,19 @@ function PostDetailPage() {
         </Card>
 
         <Space direction="vertical" size={12} className="!w-full">
-          <Card className="!border-slate-200 !shadow-none" title="发表评论">
+          <Card className="!border-slate-200 !shadow-none" title="作者信息">
+            <Space>
+              <Avatar style={{ backgroundColor: '#1677ff' }}>作</Avatar>
+              <Space direction="vertical" size={2}>
+                <Typography.Text strong>作者 {post?.id ?? '-'}</Typography.Text>
+                <Typography.Text type="secondary" className="text-xs">
+                  在掘金风格页面中持续输出内容
+                </Typography.Text>
+              </Space>
+            </Space>
+          </Card>
+
+          <Card id="comments" className="!border-slate-200 !shadow-none" title={`评论（${comments.length}）`}>
             <Form<CreateCommentPayload>
               form={commentForm}
               layout="vertical"
@@ -230,31 +255,31 @@ function PostDetailPage() {
                 发送评论
               </Button>
             </Form>
-          </Card>
 
-          <Card className="!border-slate-200 !shadow-none" title={`评论（${comments.length}）`}>
-            {comments.length ? (
-              <List
-                dataSource={comments}
-                renderItem={(item) => (
-                  <List.Item>
-                    <Space direction="vertical" size={4} className="!w-full">
-                      <Space>
-                        <Typography.Text strong>{item.nickname}</Typography.Text>
-                        <Typography.Text type="secondary" className="text-xs">
-                          {new Date(item.createdAt).toLocaleString()}
-                        </Typography.Text>
+            <div className="mt-4">
+              {comments.length ? (
+                <List
+                  dataSource={comments}
+                  renderItem={(item) => (
+                    <List.Item>
+                      <Space direction="vertical" size={4} className="!w-full">
+                        <Space>
+                          <Typography.Text strong>{item.nickname}</Typography.Text>
+                          <Typography.Text type="secondary" className="text-xs">
+                            {new Date(item.createdAt).toLocaleString()}
+                          </Typography.Text>
+                        </Space>
+                        <Typography.Paragraph className="!mb-0 !whitespace-pre-wrap">
+                          {item.content}
+                        </Typography.Paragraph>
                       </Space>
-                      <Typography.Paragraph className="!mb-0 !whitespace-pre-wrap">
-                        {item.content}
-                      </Typography.Paragraph>
-                    </Space>
-                  </List.Item>
-                )}
-              />
-            ) : (
-              <Empty description="还没有评论，来发第一条吧" />
-            )}
+                    </List.Item>
+                  )}
+                />
+              ) : (
+                <Empty description="还没有评论，来发第一条吧" />
+              )}
+            </div>
           </Card>
         </Space>
       </div>

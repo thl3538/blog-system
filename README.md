@@ -63,7 +63,7 @@ npm run dev:backend
 API 前缀：`/api`
 
 - `GET /api/health`
-- `GET /api/posts`
+- `GET /api/posts?page=1&pageSize=10&keyword=nest`
 - `GET /api/posts/:id`
 - `POST /api/posts`
 - `PATCH /api/posts/:id`

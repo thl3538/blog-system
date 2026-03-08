@@ -19,6 +19,7 @@ import {
   Input,
   List,
   Modal,
+  Pagination,
   Segmented,
   Space,
   Spin,
@@ -42,6 +43,14 @@ type PostFormValues = {
   title: string;
   summary: string;
   content: string;
+};
+
+type PostsListResponse = {
+  items: PostItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 };
 
 type ThemeMode = 'system' | 'light' | 'dark';
@@ -82,43 +91,59 @@ function App() {
   const [submitting, setSubmitting] = useState(false);
   const [themeMode, setThemeMode] = useState<ThemeMode>(getInitialThemeMode);
   const [systemPrefersDark, setSystemPrefersDark] = useState(getSystemPrefersDark);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    pageSize: 10,
+    total: 0,
+  });
 
   const selectedPost = useMemo(
     () => posts.find((post) => post.id === selectedId) ?? null,
     [posts, selectedId],
   );
 
-  const filteredPosts = useMemo(() => {
-    if (!search.trim()) return posts;
-
-    const keyword = search.toLowerCase();
-    return posts.filter(
-      (post) =>
-        post.title.toLowerCase().includes(keyword) ||
-        post.summary.toLowerCase().includes(keyword),
-    );
-  }, [posts, search]);
-
   const isDark = themeMode === 'dark' || (themeMode === 'system' && systemPrefersDark);
 
-  const fetchPosts = async () => {
+  const fetchPosts = async (params?: {
+    page?: number;
+    pageSize?: number;
+    keyword?: string;
+  }) => {
+    const nextPage = params?.page ?? pagination.page;
+    const nextPageSize = params?.pageSize ?? pagination.pageSize;
+    const nextKeyword = params?.keyword ?? search;
+
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE}/posts`);
+      const query = new URLSearchParams({
+        page: String(nextPage),
+        pageSize: String(nextPageSize),
+      });
+
+      if (nextKeyword.trim()) {
+        query.set('keyword', nextKeyword.trim());
+      }
+
+      const response = await fetch(`${API_BASE}/posts?${query.toString()}`);
       if (!response.ok) throw new Error('文章列表加载失败');
 
-      const data = (await response.json()) as PostItem[];
-      setPosts(data);
+      const data = (await response.json()) as PostsListResponse;
+      setPosts(data.items);
+      setPagination({
+        page: data.page,
+        pageSize: data.pageSize,
+        total: data.total,
+      });
 
-      if (!data.length) {
+      if (!data.items.length) {
         setSelectedId(null);
         if (mode === 'edit') setMode('create');
         return;
       }
 
-      const hasSelected = data.some((post) => post.id === selectedId);
-      if (!hasSelected) setSelectedId(data[0].id);
+      const hasSelected = data.items.some((post) => post.id === selectedId);
+      if (!hasSelected) setSelectedId(data.items[0].id);
     } catch (error) {
       message.error(error instanceof Error ? error.message : '网络异常');
     } finally {
@@ -127,7 +152,7 @@ function App() {
   };
 
   useEffect(() => {
-    void fetchPosts();
+    void fetchPosts({ page: 1, pageSize: pagination.pageSize, keyword: '' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -333,7 +358,7 @@ function App() {
             <Card
               title="文章列表"
               className="!rounded-2xl !border-0 !shadow-sm"
-              extra={<Tag color="blue">{posts.length} 篇</Tag>}
+              extra={<Tag color="blue">共 {pagination.total} 篇</Tag>}
             >
               <Space direction="vertical" size={12} className="!w-full">
                 <Input.Search
@@ -341,38 +366,65 @@ function App() {
                   allowClear
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
+                  onSearch={(value) => {
+                    void fetchPosts({
+                      page: 1,
+                      pageSize: pagination.pageSize,
+                      keyword: value,
+                    });
+                  }}
                 />
 
                 <Spin spinning={loading}>
-                  {filteredPosts.length ? (
-                    <List
-                      dataSource={filteredPosts}
-                      renderItem={(post) => (
-                        <List.Item className="!px-0">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedId(post.id);
-                              setMode('view');
-                            }}
-                            className={`w-full rounded-xl border px-3 py-2 text-left transition ${getPostItemClasses(
-                              selectedId === post.id,
-                            )}`}
-                          >
-                            <div className="mb-1 line-clamp-1 font-semibold">
-                              {post.title}
-                            </div>
-                            <div
-                              className={`line-clamp-2 text-xs ${
-                                isDark ? 'text-slate-400' : 'text-slate-500'
-                              }`}
+                  {posts.length ? (
+                    <>
+                      <List
+                        dataSource={posts}
+                        renderItem={(post) => (
+                          <List.Item className="!px-0">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedId(post.id);
+                                setMode('view');
+                              }}
+                              className={`w-full rounded-xl border px-3 py-2 text-left transition ${getPostItemClasses(
+                                selectedId === post.id,
+                              )}`}
                             >
-                              {post.summary}
-                            </div>
-                          </button>
-                        </List.Item>
-                      )}
-                    />
+                              <div className="mb-1 line-clamp-1 font-semibold">
+                                {post.title}
+                              </div>
+                              <div
+                                className={`line-clamp-2 text-xs ${
+                                  isDark ? 'text-slate-400' : 'text-slate-500'
+                                }`}
+                              >
+                                {post.summary}
+                              </div>
+                            </button>
+                          </List.Item>
+                        )}
+                      />
+
+                      <div className="flex justify-end pt-2">
+                        <Pagination
+                          current={pagination.page}
+                          pageSize={pagination.pageSize}
+                          total={pagination.total}
+                          size="small"
+                          showSizeChanger
+                          pageSizeOptions={[5, 10, 20, 50]}
+                          onChange={(page, pageSize) => {
+                            void fetchPosts({
+                              page,
+                              pageSize,
+                              keyword: search,
+                            });
+                          }}
+                        />
+                      </div>
+                    </>
                   ) : (
                     <Empty
                       description="暂无匹配文章"

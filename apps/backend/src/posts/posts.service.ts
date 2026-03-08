@@ -2,16 +2,45 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePostDto } from './dto/create-post.dto';
+import { FindPostsDto } from './dto/find-posts.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 
 @Injectable()
 export class PostsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
-    return this.prisma.post.findMany({
-      orderBy: { id: 'desc' },
-    });
+  async findAll(query: FindPostsDto) {
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 10;
+    const keyword = query.keyword?.trim();
+
+    const where: Prisma.PostWhereInput | undefined = keyword
+      ? {
+          OR: [
+            { title: { contains: keyword } },
+            { summary: { contains: keyword } },
+            { content: { contains: keyword } },
+          ],
+        }
+      : undefined;
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.post.findMany({
+        where,
+        orderBy: { id: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.post.count({ where }),
+    ]);
+
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
   }
 
   async findOne(id: number) {

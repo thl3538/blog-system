@@ -7,8 +7,10 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { CreatePostDto } from './dto/create-post.dto';
+import { FindPostsDto } from './dto/find-posts.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { PostsService } from './posts.service';
 
@@ -17,8 +19,8 @@ export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
   @Get()
-  findAll() {
-    return this.postsService.findAll();
+  findAll(@Query() query: FindPostsDto) {
+    return this.postsService.findAll(query);
   }
 
   @Get(':id')

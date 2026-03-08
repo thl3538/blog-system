@@ -1,6 +1,27 @@
+import {
+  DeleteOutlined,
+  EditOutlined,
+  EyeOutlined,
+  FileTextOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  SaveOutlined,
+} from '@ant-design/icons';
+import {
+  Button,
+  Card,
+  Empty,
+  Form,
+  Input,
+  List,
+  Modal,
+  Space,
+  Spin,
+  Tag,
+  Typography,
+  message,
+} from 'antd';
 import { useEffect, useMemo, useState } from 'react';
-import type { FormEvent } from 'react';
-import './App.css';
 
 type PostItem = {
   id: number;
@@ -11,46 +32,65 @@ type PostItem = {
   updatedAt: string;
 };
 
+type PostFormValues = {
+  title: string;
+  summary: string;
+  content: string;
+};
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api';
 
-const emptyForm = {
+const emptyForm: PostFormValues = {
   title: '',
   summary: '',
   content: '',
 };
 
 function App() {
+  const [form] = Form.useForm<PostFormValues>();
   const [posts, setPosts] = useState<PostItem[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [form, setForm] = useState(emptyForm);
-  const [isEditing, setIsEditing] = useState(false);
+  const [mode, setMode] = useState<'view' | 'create' | 'edit'>('view');
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const selectedPost = useMemo(
     () => posts.find((post) => post.id === selectedId) ?? null,
     [posts, selectedId],
   );
 
+  const filteredPosts = useMemo(() => {
+    if (!search.trim()) return posts;
+
+    const keyword = search.toLowerCase();
+    return posts.filter(
+      (post) =>
+        post.title.toLowerCase().includes(keyword) ||
+        post.summary.toLowerCase().includes(keyword),
+    );
+  }, [posts, search]);
+
   const fetchPosts = async () => {
     setLoading(true);
-    setError(null);
+
     try {
       const response = await fetch(`${API_BASE}/posts`);
-      if (!response.ok) {
-        throw new Error('获取文章列表失败');
-      }
+      if (!response.ok) throw new Error('文章列表加载失败');
 
       const data = (await response.json()) as PostItem[];
       setPosts(data);
-      if (data.length && selectedId === null) {
-        setSelectedId(data[0].id);
-      }
+
       if (!data.length) {
         setSelectedId(null);
+        if (mode === 'edit') setMode('create');
+        return;
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '网络错误');
+
+      const hasSelected = data.some((post) => post.id === selectedId);
+      if (!hasSelected) setSelectedId(data[0].id);
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '网络异常');
     } finally {
       setLoading(false);
     }
@@ -61,168 +101,288 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const resetForm = () => {
-    setForm(emptyForm);
-    setIsEditing(false);
-  };
-
   const startCreate = () => {
-    resetForm();
-    setSelectedId(null);
+    setMode('create');
+    form.setFieldsValue(emptyForm);
   };
 
   const startEdit = () => {
     if (!selectedPost) return;
-    setForm({
+
+    setMode('edit');
+    form.setFieldsValue({
       title: selectedPost.title,
       summary: selectedPost.summary,
       content: selectedPost.content,
     });
-    setIsEditing(true);
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    if (!form.title.trim() || !form.summary.trim() || !form.content.trim()) {
-      setError('标题、摘要、正文不能为空');
-      return;
+  const cancelEdit = () => {
+    if (selectedPost) {
+      setMode('view');
+    } else {
+      setMode('create');
     }
+    form.setFieldsValue(emptyForm);
+  };
 
-    setError(null);
+  const handleSubmit = async (values: PostFormValues) => {
+    setSubmitting(true);
 
     try {
-      const isUpdate = isEditing && selectedPost;
-      const method = isUpdate ? 'PATCH' : 'POST';
-      const url = isUpdate
+      const isEdit = mode === 'edit' && selectedPost;
+      const url = isEdit
         ? `${API_BASE}/posts/${selectedPost.id}`
         : `${API_BASE}/posts`;
+      const method = isEdit ? 'PATCH' : 'POST';
 
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify(values),
       });
 
       if (!response.ok) {
-        throw new Error(isUpdate ? '更新文章失败' : '发布文章失败');
+        throw new Error(isEdit ? '更新失败' : '发布失败');
       }
 
       const saved = (await response.json()) as PostItem;
+      message.success(isEdit ? '文章已更新' : '文章已发布');
       await fetchPosts();
       setSelectedId(saved.id);
-      resetForm();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '提交失败');
+      setMode('view');
+      form.setFieldsValue(emptyForm);
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '提交失败');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!selectedPost) return;
 
-    const confirmed = window.confirm(`确认删除《${selectedPost.title}》吗？`);
-    if (!confirmed) return;
+    Modal.confirm({
+      title: '确认删除文章吗？',
+      content: `《${selectedPost.title}》删除后将无法恢复。`,
+      okText: '确认删除',
+      cancelText: '取消',
+      okType: 'danger',
+      onOk: async () => {
+        const response = await fetch(`${API_BASE}/posts/${selectedPost.id}`, {
+          method: 'DELETE',
+        });
 
-    try {
-      const response = await fetch(`${API_BASE}/posts/${selectedPost.id}`, {
-        method: 'DELETE',
-      });
+        if (!response.ok) {
+          message.error('删除失败');
+          return;
+        }
 
-      if (!response.ok) {
-        throw new Error('删除失败');
-      }
-
-      await fetchPosts();
-      resetForm();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '删除失败');
-    }
+        message.success('文章已删除');
+        await fetchPosts();
+        setMode('view');
+      },
+    });
   };
 
   return (
-    <div className="layout">
-      <aside className="sidebar">
-        <div className="sidebar-header">
-          <h1>博客系统</h1>
-          <button onClick={startCreate}>新建文章</button>
-        </div>
-
-        {loading ? <p>加载中...</p> : null}
-
-        <ul className="post-list">
-          {posts.map((post) => (
-            <li key={post.id}>
-              <button
-                className={selectedId === post.id ? 'active' : ''}
-                onClick={() => {
-                  setSelectedId(post.id);
-                  setIsEditing(false);
-                }}
+    <div className="min-h-screen bg-slate-100 px-4 py-6 md:px-8 md:py-8">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <Card className="!rounded-2xl !border-0 !bg-gradient-to-r !from-blue-600 !to-cyan-500 !shadow-lg">
+          <div className="flex flex-wrap items-center justify-between gap-3 text-white">
+            <div>
+              <Typography.Title level={3} className="!mb-1 !text-white">
+                博客管理台
+              </Typography.Title>
+              <Typography.Text className="!text-blue-100">
+                Ant Design + Tailwind 版前端 UI，支持文章 CRUD。
+              </Typography.Text>
+            </div>
+            <Space>
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={() => void fetchPosts()}
+                className="!border-white/40 !bg-white/10 !text-white hover:!bg-white/20"
               >
-                <strong>{post.title}</strong>
-                <small>{post.summary}</small>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </aside>
+                刷新
+              </Button>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={startCreate}
+                className="!border-0 !bg-white !text-blue-600"
+              >
+                新建文章
+              </Button>
+            </Space>
+          </div>
+        </Card>
 
-      <main className="content">
-        {error ? <p className="error">{error}</p> : null}
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[340px_1fr]">
+          <Card
+            title="文章列表"
+            className="!rounded-2xl !border-0 !shadow-sm"
+            extra={<Tag color="blue">{posts.length} 篇</Tag>}
+          >
+            <Space direction="vertical" size={12} className="!w-full">
+              <Input.Search
+                placeholder="搜索标题或摘要"
+                allowClear
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
 
-        <section className="editor">
-          <h2>{isEditing || !selectedPost ? '编辑文章' : '文章详情'}</h2>
+              <Spin spinning={loading}>
+                {filteredPosts.length ? (
+                  <List
+                    dataSource={filteredPosts}
+                    renderItem={(post) => (
+                      <List.Item className="!px-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedId(post.id);
+                            setMode('view');
+                          }}
+                          className={`w-full rounded-xl border px-3 py-2 text-left transition ${
+                            selectedId === post.id
+                              ? 'border-blue-500 bg-blue-50'
+                              : 'border-slate-200 bg-white hover:border-blue-300'
+                          }`}
+                        >
+                          <div className="mb-1 line-clamp-1 font-semibold text-slate-800">
+                            {post.title}
+                          </div>
+                          <div className="line-clamp-2 text-xs text-slate-500">
+                            {post.summary}
+                          </div>
+                        </button>
+                      </List.Item>
+                    )}
+                  />
+                ) : (
+                  <Empty description="暂无匹配文章" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                )}
+              </Spin>
+            </Space>
+          </Card>
 
-          {isEditing || !selectedPost ? (
-            <form onSubmit={handleSubmit}>
-              <input
-                placeholder="标题"
-                value={form.title}
-                onChange={(event) =>
-                  setForm((prev) => ({ ...prev, title: event.target.value }))
-                }
-              />
-              <input
-                placeholder="摘要"
-                value={form.summary}
-                onChange={(event) =>
-                  setForm((prev) => ({ ...prev, summary: event.target.value }))
-                }
-              />
-              <textarea
-                placeholder="正文（支持纯文本）"
-                rows={12}
-                value={form.content}
-                onChange={(event) =>
-                  setForm((prev) => ({ ...prev, content: event.target.value }))
-                }
-              />
-              <div className="actions">
-                <button type="submit">{isEditing ? '保存修改' : '发布文章'}</button>
-                <button type="button" onClick={resetForm}>
-                  取消
-                </button>
-              </div>
-            </form>
-          ) : (
-            <article className="article">
-              <h2>{selectedPost.title}</h2>
-              <p className="summary">{selectedPost.summary}</p>
-              <pre>{selectedPost.content}</pre>
-              <div className="meta">
-                <span>创建：{new Date(selectedPost.createdAt).toLocaleString()}</span>
-                <span>更新：{new Date(selectedPost.updatedAt).toLocaleString()}</span>
-              </div>
-              <div className="actions">
-                <button onClick={startEdit}>编辑</button>
-                <button onClick={handleDelete}>删除</button>
-              </div>
-            </article>
-          )}
-        </section>
-      </main>
+          <div className="space-y-6">
+            <Card
+              className="!rounded-2xl !border-0 !shadow-sm"
+              title={
+                <Space>
+                  <EyeOutlined />
+                  文章详情
+                </Space>
+              }
+              extra={
+                selectedPost ? (
+                  <Space>
+                    <Button icon={<EditOutlined />} onClick={startEdit}>
+                      编辑
+                    </Button>
+                    <Button
+                      danger
+                      icon={<DeleteOutlined />}
+                      onClick={handleDelete}
+                    >
+                      删除
+                    </Button>
+                  </Space>
+                ) : null
+              }
+            >
+              {selectedPost ? (
+                <div className="space-y-4">
+                  <div>
+                    <Typography.Title level={3} className="!mb-2">
+                      {selectedPost.title}
+                    </Typography.Title>
+                    <Typography.Paragraph className="!mb-1 !text-slate-600">
+                      {selectedPost.summary}
+                    </Typography.Paragraph>
+                    <Space size={6} wrap>
+                      <Tag color="geekblue">ID #{selectedPost.id}</Tag>
+                      <Tag>创建：{new Date(selectedPost.createdAt).toLocaleString()}</Tag>
+                      <Tag>更新：{new Date(selectedPost.updatedAt).toLocaleString()}</Tag>
+                    </Space>
+                  </div>
+
+                  <Card className="!bg-slate-50">
+                    <Typography.Paragraph className="!mb-0 !whitespace-pre-wrap !text-[15px] !leading-7">
+                      {selectedPost.content}
+                    </Typography.Paragraph>
+                  </Card>
+                </div>
+              ) : (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description="请选择左侧文章，或先新建一篇"
+                />
+              )}
+            </Card>
+
+            <Card
+              className="!rounded-2xl !border-0 !shadow-sm"
+              title={
+                <Space>
+                  <FileTextOutlined />
+                  {mode === 'edit' ? '编辑文章' : '写新文章'}
+                </Space>
+              }
+            >
+              <Form<PostFormValues>
+                layout="vertical"
+                form={form}
+                initialValues={emptyForm}
+                onFinish={handleSubmit}
+              >
+                <Form.Item
+                  label="标题"
+                  name="title"
+                  rules={[{ required: true, message: '请输入标题' }]}
+                >
+                  <Input maxLength={120} placeholder="例如：用 NestJS 快速搭建博客 API" />
+                </Form.Item>
+
+                <Form.Item
+                  label="摘要"
+                  name="summary"
+                  rules={[{ required: true, message: '请输入摘要' }]}
+                >
+                  <Input maxLength={300} placeholder="一句话说明这篇文章讲什么" />
+                </Form.Item>
+
+                <Form.Item
+                  label="正文"
+                  name="content"
+                  rules={[{ required: true, message: '请输入正文内容' }]}
+                >
+                  <Input.TextArea
+                    rows={10}
+                    placeholder="支持纯文本，可后续升级为 Markdown / 富文本编辑器"
+                  />
+                </Form.Item>
+
+                <Space>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    loading={submitting}
+                    icon={<SaveOutlined />}
+                  >
+                    {mode === 'edit' ? '保存修改' : '发布文章'}
+                  </Button>
+                  <Button onClick={cancelEdit}>重置</Button>
+                </Space>
+              </Form>
+            </Card>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

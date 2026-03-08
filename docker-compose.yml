@@ -1,17 +1,16 @@
 version: '3.9'
 services:
-  postgres:
-    image: postgres:16
-    container_name: blog-system-postgres
+  mysql:
+    image: mysql:8.4
+    container_name: blog-system-mysql
     restart: unless-stopped
     environment:
-      POSTGRES_USER: blog
-      POSTGRES_PASSWORD: blog
-      POSTGRES_DB: blog_system
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: blog_system
     ports:
-      - '5432:5432'
+      - '3306:3306'
     volumes:
-      - blog_system_pgdata:/var/lib/postgresql/data
+      - blog_system_mysql_data:/var/lib/mysql
 
 volumes:
-  blog_system_pgdata:
+  blog_system_mysql_data:

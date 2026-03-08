@@ -1,10 +1,10 @@
-# Blog System (React + Vite + NestJS + PostgreSQL)
+# Blog System (React + Vite + NestJS + MySQL)
 
 一个简单的全栈博客系统：
 
 - 前端：React + Vite + TypeScript
 - 后端：NestJS + Prisma
-- 数据库：PostgreSQL
+- 数据库：MySQL
 - 功能：文章列表、发布、编辑、删除
 
 ## 项目结构
@@ -16,7 +16,6 @@ blog-system/
     backend/          # NestJS API + Prisma
       prisma/
         schema.prisma
-  docker-compose.yml  # 本地 PostgreSQL
 ```
 
 ## 1) 安装依赖
@@ -26,18 +25,19 @@ cd blog-system
 npm install --workspaces
 ```
 
-## 2) 启动数据库（Docker）
+## 2) 准备 MySQL
 
-```bash
-docker compose up -d
+请确保本机已有 MySQL，并创建数据库：
+
+```sql
+CREATE DATABASE blog_system;
 ```
 
-默认数据库连接：
+默认连接字符串示例：
 
-- user: `blog`
-- password: `blog`
-- db: `blog_system`
-- port: `5432`
+```text
+mysql://root:password@localhost:3306/blog_system
+```
 
 ## 3) 配置后端环境变量
 
@@ -45,18 +45,16 @@ docker compose up -d
 cp apps/backend/.env.example apps/backend/.env
 ```
 
-## 4) 生成 Prisma Client + 执行迁移
+## 4) 生成 Prisma Client + 同步表结构（不使用 migration）
 
 ```bash
-cd apps/backend
 npm run prisma:generate
-npm run prisma:migrate -- --name init
+npm run prisma:push
 ```
 
 ## 5) 启动后端
 
 ```bash
-cd /path/to/blog-system
 npm run dev:backend
 ```
 
@@ -93,14 +91,10 @@ VITE_API_BASE_URL=http://localhost:3000/api
 ## 常用命令
 
 ```bash
-# 后端 Prisma 命令
-npm run prisma:generate --workspace backend
-npm run prisma:migrate --workspace backend -- --name init
-npm run prisma:studio --workspace backend
-
-# 构建
+npm run prisma:generate
+npm run prisma:push
+npm run prisma:migrate   # 可选：未来需要 migration 再用
+npm run prisma:studio
 npm run build
-
-# 测试（后端）
 npm run test --workspace backend
 ```

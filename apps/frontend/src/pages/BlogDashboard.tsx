@@ -31,9 +31,11 @@ import {
   message,
   theme as antdTheme,
 } from 'antd';
+import { AxiosError } from 'axios';
 import { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { http } from '../lib/http';
 
 type PostItem = {
   id: number;
@@ -62,8 +64,6 @@ type PostsListResponse = {
 
 type ThemeMode = 'system' | 'light' | 'dark';
 type EditorTab = 'write' | 'preview';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api';
 
 const emptyForm: PostFormValues = {
   title: '',
@@ -96,6 +96,20 @@ const getDraftStorageKey = (mode: 'view' | 'create' | 'edit', selectedId: number
   }
 
   return `${DRAFT_STORAGE_PREFIX}:create`;
+};
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof AxiosError) {
+    const responseMessage = (error.response?.data as { message?: string } | undefined)
+      ?.message;
+    return responseMessage || error.message || fallback;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return fallback;
 };
 
 const renderMarkdown = (content: string) => (
@@ -210,10 +224,7 @@ function BlogDashboard() {
         query.set('keyword', nextKeyword.trim());
       }
 
-      const response = await fetch(`${API_BASE}/posts?${query.toString()}`);
-      if (!response.ok) throw new Error('文章列表加载失败');
-
-      const data = (await response.json()) as PostsListResponse;
+      const { data } = await http.get<PostsListResponse>(`/posts?${query.toString()}`);
       setPosts(data.items);
       setPagination({
         page: data.page,
@@ -232,7 +243,7 @@ function BlogDashboard() {
       const hasSelected = data.items.some((post) => post.id === selectedId);
       if (!hasSelected) setSelectedId(data.items[0].id);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '网络异常';
+      const errorMessage = getErrorMessage(error, '文章列表加载失败');
       setLoadError(errorMessage);
       message.error(errorMessage);
     } finally {
@@ -337,24 +348,11 @@ function BlogDashboard() {
 
     try {
       const isEdit = mode === 'edit' && selectedPost;
-      const url = isEdit
-        ? `${API_BASE}/posts/${selectedPost.id}`
-        : `${API_BASE}/posts`;
-      const method = isEdit ? 'PATCH' : 'POST';
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(values),
-      });
+      const { data: saved } = isEdit
+        ? await http.patch<PostItem>(`/posts/${selectedPost.id}`, values)
+        : await http.post<PostItem>('/posts', values);
 
-      if (!response.ok) {
-        throw new Error(isEdit ? '更新失败' : '发布失败');
-      }
-
-      const saved = (await response.json()) as PostItem;
       message.success(isEdit ? '文章已更新' : '文章已发布');
 
       if (typeof window !== 'undefined') {
@@ -368,7 +366,7 @@ function BlogDashboard() {
       setDraftSavedAt(null);
       form.setFieldsValue(emptyForm);
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '提交失败');
+      message.error(getErrorMessage(error, '提交失败'));
     } finally {
       setSubmitting(false);
     }
@@ -397,18 +395,14 @@ function BlogDashboard() {
       cancelText: '取消',
       okType: 'danger',
       onOk: async () => {
-        const response = await fetch(`${API_BASE}/posts/${selectedPost.id}`, {
-          method: 'DELETE',
-        });
-
-        if (!response.ok) {
-          message.error('删除失败');
-          return;
+        try {
+          await http.delete(`/posts/${selectedPost.id}`);
+          message.success('文章已删除');
+          await fetchPosts();
+          setMode('view');
+        } catch (error) {
+          message.error(getErrorMessage(error, '删除失败'));
         }
-
-        message.success('文章已删除');
-        await fetchPosts();
-        setMode('view');
       },
     });
   };
@@ -439,68 +433,75 @@ function BlogDashboard() {
     >
       <div
         className={`min-h-screen px-4 py-6 transition-colors md:px-8 md:py-8 ${
-          isDark ? 'bg-slate-950' : 'bg-slate-100'
+          isDark ? 'bg-slate-950' : 'bg-[#f4f5f5]'
         }`}
       >
         <div className="mx-auto max-w-7xl space-y-6">
-          <Card className="!rounded-2xl !border-0 !bg-gradient-to-r !from-blue-600 !to-cyan-500 !shadow-lg">
-            <div className="flex flex-wrap items-center justify-between gap-3 text-white">
-              <div>
-                <Typography.Title level={3} className="!mb-1 !text-white">
-                  博客管理台
-                </Typography.Title>
-                <Typography.Text className="!text-blue-100">
-                  Ant Design + Tailwind 版前端 UI，支持跟随系统/手动切换主题。
-                </Typography.Text>
+          <Card
+            className={`!rounded-xl !shadow-none ${
+              isDark
+                ? '!border-slate-700 !bg-slate-900'
+                : '!border-slate-200 !bg-white'
+            }`}
+          >
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <Typography.Title level={4} className="!mb-0">
+                    稀土博客
+                  </Typography.Title>
+                  <Typography.Text type="secondary">
+                    参考掘金布局：信息流 + 详情 + 创作面板
+                  </Typography.Text>
+                </div>
+
+                <Space wrap>
+                  <Segmented<ThemeMode>
+                    value={themeMode}
+                    onChange={(value) => setThemeMode(value as ThemeMode)}
+                    options={[
+                      {
+                        label: (
+                          <span className="inline-flex items-center gap-1">
+                            <DesktopOutlined /> 跟随系统
+                          </span>
+                        ),
+                        value: 'system',
+                      },
+                      {
+                        label: (
+                          <span className="inline-flex items-center gap-1">
+                            <SunOutlined /> 浅色
+                          </span>
+                        ),
+                        value: 'light',
+                      },
+                      {
+                        label: (
+                          <span className="inline-flex items-center gap-1">
+                            <MoonOutlined /> 深色
+                          </span>
+                        ),
+                        value: 'dark',
+                      },
+                    ]}
+                  />
+
+                  <Button icon={<ReloadOutlined />} onClick={() => void fetchPosts()}>
+                    刷新
+                  </Button>
+                  <Button type="primary" icon={<PlusOutlined />} onClick={startCreate}>
+                    写文章
+                  </Button>
+                </Space>
               </div>
 
-              <Space wrap>
-                <Segmented<ThemeMode>
-                  value={themeMode}
-                  onChange={(value) => setThemeMode(value as ThemeMode)}
-                  options={[
-                    {
-                      label: (
-                        <span className="inline-flex items-center gap-1">
-                          <DesktopOutlined /> 跟随系统
-                        </span>
-                      ),
-                      value: 'system',
-                    },
-                    {
-                      label: (
-                        <span className="inline-flex items-center gap-1">
-                          <SunOutlined /> 浅色
-                        </span>
-                      ),
-                      value: 'light',
-                    },
-                    {
-                      label: (
-                        <span className="inline-flex items-center gap-1">
-                          <MoonOutlined /> 深色
-                        </span>
-                      ),
-                      value: 'dark',
-                    },
-                  ]}
-                  className="!bg-white/15 [&_.ant-segmented-item-selected]:!bg-white [&_.ant-segmented-item-selected]:!text-blue-600 [&_.ant-segmented-item-label]:!text-white"
-                />
-                <Button
-                  icon={<ReloadOutlined />}
-                  onClick={() => void fetchPosts()}
-                  className="!border-white/40 !bg-white/10 !text-white hover:!bg-white/20"
-                >
-                  刷新
-                </Button>
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={startCreate}
-                  className="!border-0 !bg-white !text-blue-600"
-                >
-                  新建文章
-                </Button>
+              <Space wrap size={[8, 8]}>
+                <Tag color="blue">综合</Tag>
+                <Tag>后端</Tag>
+                <Tag>前端</Tag>
+                <Tag>人工智能</Tag>
+                <Tag>阅读</Tag>
               </Space>
             </div>
           </Card>

@@ -1,0 +1,182 @@
+.jj-editor-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 18px;
+}
+
+.jj-editor-main {
+  min-width: 0;
+}
+
+.jj-editor-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.jj-editor-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #4e5969;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.jj-editor-back:hover {
+  color: #1e80ff;
+}
+
+.jj-editor-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.jj-editor-saved {
+  color: #8a919f;
+  font-size: 12px;
+}
+
+.jj-editor-publish-tip {
+  border: 1px solid #d0d3da;
+  border-radius: 999px;
+  background: #fff;
+  color: #4e5969;
+  font-size: 12px;
+  padding: 4px 10px;
+}
+
+.jj-editor-card {
+  border: 1px solid #e5e6eb;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.jj-editor-form {
+  padding: 20px;
+}
+
+.jj-title-item {
+  margin-bottom: 18px !important;
+}
+
+.jj-title-input {
+  border-width: 0 !important;
+  border-bottom: 1px solid #e5e6eb !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: #1d2129 !important;
+  font-size: 34px !important;
+  font-weight: 700;
+  padding: 8px 2px !important;
+}
+
+.jj-title-input::placeholder {
+  color: #8a919f !important;
+  font-weight: 500;
+}
+
+.jj-editor-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.jj-editor-md-wrap {
+  border: 1px solid #e5e6eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.jj-editor-md-wrap .w-md-editor {
+  border: none;
+  box-shadow: none;
+}
+
+.jj-editor-loading,
+.jj-editor-empty {
+  padding: 20px;
+}
+
+.jj-editor-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.jj-editor-side-card {
+  border: 1px solid #e5e6eb;
+  border-radius: 8px;
+  background: #fff;
+  padding: 14px;
+}
+
+.jj-editor-side-card h4 {
+  margin: 0;
+  color: #1d2129;
+  font-size: 16px;
+}
+
+.jj-editor-side-card ul {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: #4e5969;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.jj-editor-side-card p {
+  margin: 10px 0 0;
+  color: #4e5969;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.jj-editor-tags {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.jj-editor-tags span {
+  border: 1px solid #e5e6eb;
+  border-radius: 999px;
+  color: #4e5969;
+  font-size: 12px;
+  padding: 4px 10px;
+}
+
+@media (max-width: 1024px) {
+  .jj-editor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .jj-editor-sidebar {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .jj-title-input {
+    font-size: 28px !important;
+  }
+
+  .jj-editor-form {
+    padding: 14px;
+  }
+
+  .jj-editor-toolbar {
+    margin-bottom: 8px;
+  }
+
+  .jj-editor-toolbar-right {
+    display: none;
+  }
+}

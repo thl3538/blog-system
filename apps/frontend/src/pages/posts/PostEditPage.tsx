@@ -1,17 +1,5 @@
 import { ArrowLeftOutlined, SaveOutlined } from '@ant-design/icons';
-import {
-  Button,
-  Card,
-  Empty,
-  Form,
-  Input,
-  Segmented,
-  Skeleton,
-  Space,
-  Typography,
-  Upload,
-  message,
-} from 'antd';
+import { Button, Empty, Form, Input, Segmented, Skeleton, Space, Upload, message } from 'antd';
 import MDEditor from '@uiw/react-md-editor';
 import { useEffect, useMemo, useState } from 'react';
 import remarkGfm from 'remark-gfm';
@@ -20,6 +8,7 @@ import { postsApi } from '../../api/posts';
 import MainLayout from '../../components/layout/MainLayout';
 import { HttpClientError } from '../../lib/http';
 import type { PostPayload } from '../../types/post';
+import './PostEditorPage.css';
 
 type FormValues = PostPayload;
 type EditorMode = 'live' | 'edit' | 'preview';
@@ -121,100 +110,133 @@ function PostEditPage() {
 
   return (
     <MainLayout>
-      <Card
-        className="!border-slate-200 !shadow-none"
-        title="编辑文章"
-        extra={
-          savedAt ? (
-            <Typography.Text type="secondary">草稿已保存：{savedAt}</Typography.Text>
-          ) : null
-        }
-      >
-        {loading ? (
-          <Skeleton active paragraph={{ rows: 8 }} title={{ width: '35%' }} />
-        ) : !exists ? (
-          <Empty description="文章不存在或已被删除" />
-        ) : (
-          <Form<FormValues> layout="vertical" form={form} onFinish={submit}>
-            <Form.Item
-              label="标题"
-              name="title"
-              rules={[{ required: true, message: '请输入标题' }]}
-            >
-              <Input maxLength={120} placeholder="请输入文章标题" />
-            </Form.Item>
-
-            <Form.Item
-              label="摘要"
-              name="summary"
-              rules={[{ required: true, message: '请输入摘要' }]}
-            >
-              <Input maxLength={300} placeholder="一句话概括这篇文章" />
-            </Form.Item>
-
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-              <Segmented<EditorMode>
-                value={editorMode}
-                onChange={(value) => setEditorMode(value as EditorMode)}
-                options={[
-                  { label: '分栏预览', value: 'live' },
-                  { label: '仅编辑', value: 'edit' },
-                  { label: '仅预览', value: 'preview' },
-                ]}
-              />
-
-              <Upload
-                showUploadList={false}
-                beforeUpload={(file) => {
-                  const reader = new FileReader();
-                  reader.onload = () => {
-                    const dataUrl = String(reader.result ?? '');
-                    const current = form.getFieldValue('content') ?? '';
-                    const next = `${current}${current ? '\n\n' : ''}![${file.name}](${dataUrl})`;
-                    form.setFieldValue('content', next);
-                    message.success('图片已插入 Markdown');
-                  };
-                  reader.readAsDataURL(file as File);
-                  return false;
-                }}
-              >
-                <Button>插入图片</Button>
-              </Upload>
+      <div className="jj-editor-grid">
+        <section className="jj-editor-main">
+          <div className="jj-editor-toolbar">
+            <Link to={`/posts/${postId}`} className="jj-editor-back">
+              <ArrowLeftOutlined /> 返回详情
+            </Link>
+            <div className="jj-editor-toolbar-right">
+              {savedAt ? <span className="jj-editor-saved">草稿已保存：{savedAt}</span> : null}
+              <button type="button" className="jj-editor-publish-tip">
+                修改后可再次编辑
+              </button>
             </div>
+          </div>
 
-            <Form.Item
-              label="正文（Markdown）"
-              name="content"
-              rules={[{ required: true, message: '请输入正文内容' }]}
-            >
-              <div data-color-mode="light">
-                <MDEditor
-                  value={content}
-                  onChange={(value) => form.setFieldValue('content', value ?? '')}
-                  preview={editorMode}
-                  previewOptions={{ remarkPlugins: [remarkGfm] }}
-                  textareaProps={{ placeholder: '支持 Markdown：# 标题、- 列表、```代码块```' }}
-                  height={460}
-                />
+          <div className="jj-editor-card">
+            {loading ? (
+              <div className="jj-editor-loading">
+                <Skeleton active paragraph={{ rows: 10 }} title={{ width: '35%' }} />
               </div>
-            </Form.Item>
+            ) : !exists ? (
+              <div className="jj-editor-empty">
+                <Empty description="文章不存在或已被删除" />
+              </div>
+            ) : (
+              <Form<FormValues> layout="vertical" form={form} onFinish={submit} className="jj-editor-form">
+                <Form.Item
+                  className="jj-title-item"
+                  name="title"
+                  rules={[{ required: true, message: '请输入标题' }]}
+                >
+                  <Input
+                    maxLength={120}
+                    className="jj-title-input"
+                    placeholder="请输入文章标题..."
+                  />
+                </Form.Item>
 
-            <Space>
-              <Link to={`/posts/${postId}`}>
-                <Button icon={<ArrowLeftOutlined />}>返回详情</Button>
-              </Link>
-              <Button
-                type="primary"
-                htmlType="submit"
-                loading={submitting}
-                icon={<SaveOutlined />}
-              >
-                保存修改
-              </Button>
-            </Space>
-          </Form>
-        )}
-      </Card>
+                <Form.Item
+                  label="文章摘要"
+                  name="summary"
+                  rules={[{ required: true, message: '请输入摘要' }]}
+                >
+                  <Input maxLength={300} placeholder="一句话概括这篇文章（用于列表展示）" />
+                </Form.Item>
+
+                <div className="jj-editor-actions-row">
+                  <Segmented<EditorMode>
+                    value={editorMode}
+                    onChange={(value) => setEditorMode(value as EditorMode)}
+                    options={[
+                      { label: '分栏预览', value: 'live' },
+                      { label: '仅编辑', value: 'edit' },
+                      { label: '仅预览', value: 'preview' },
+                    ]}
+                  />
+
+                  <Upload
+                    showUploadList={false}
+                    beforeUpload={(file) => {
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        const dataUrl = String(reader.result ?? '');
+                        const current = form.getFieldValue('content') ?? '';
+                        const next = `${current}${current ? '\n\n' : ''}![${file.name}](${dataUrl})`;
+                        form.setFieldValue('content', next);
+                        message.success('图片已插入 Markdown');
+                      };
+                      reader.readAsDataURL(file as File);
+                      return false;
+                    }}
+                  >
+                    <Button>插入图片</Button>
+                  </Upload>
+                </div>
+
+                <Form.Item
+                  label="正文（Markdown）"
+                  name="content"
+                  rules={[{ required: true, message: '请输入正文内容' }]}
+                >
+                  <div data-color-mode="light" className="jj-editor-md-wrap">
+                    <MDEditor
+                      value={content}
+                      onChange={(value) => form.setFieldValue('content', value ?? '')}
+                      preview={editorMode}
+                      previewOptions={{ remarkPlugins: [remarkGfm] }}
+                      textareaProps={{ placeholder: '支持 Markdown：# 标题、- 列表、```代码块```' }}
+                      height={560}
+                    />
+                  </div>
+                </Form.Item>
+
+                <Space>
+                  <Link to={`/posts/${postId}`}>
+                    <Button icon={<ArrowLeftOutlined />}>取消</Button>
+                  </Link>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    loading={submitting}
+                    icon={<SaveOutlined />}
+                  >
+                    保存修改
+                  </Button>
+                </Space>
+              </Form>
+            )}
+          </div>
+        </section>
+
+        <aside className="jj-editor-sidebar">
+          <div className="jj-editor-side-card">
+            <h4>编辑建议</h4>
+            <ul>
+              <li>优先更新标题和摘要，确保列表点击率</li>
+              <li>变更重点可在文末补充“更新说明”</li>
+              <li>如修改较大，建议重新梳理小标题结构</li>
+              <li>发布前再检查一次代码块和图片显示</li>
+            </ul>
+          </div>
+
+          <div className="jj-editor-side-card">
+            <h4>状态提示</h4>
+            <p>编辑内容会自动保存在本地草稿，避免刷新页面导致内容丢失。</p>
+          </div>
+        </aside>
+      </div>
     </MainLayout>
   );
 }

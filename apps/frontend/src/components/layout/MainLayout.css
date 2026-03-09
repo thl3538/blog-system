@@ -182,9 +182,29 @@
   background: #f4f8ff;
 }
 
-.juejin-user-badge {
-  color: var(--jj-text-secondary);
+.juejin-user-menu {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #d7dce3;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--jj-text-primary);
+  cursor: pointer;
   font-size: 13px;
+  padding: 2px 10px 2px 2px;
+}
+
+.juejin-user-name {
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.juejin-user-arrow {
+  color: var(--jj-text-tertiary);
+  font-size: 11px;
 }
 
 .juejin-topic-wrap {
@@ -257,6 +277,15 @@
 
   .juejin-login-btn {
     display: none;
+  }
+
+  .juejin-user-name,
+  .juejin-user-arrow {
+    display: none;
+  }
+
+  .juejin-user-menu {
+    padding-right: 2px;
   }
 
   .juejin-topic-inner {

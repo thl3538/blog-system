@@ -1,8 +1,12 @@
-import { SearchOutlined } from '@ant-design/icons';
-import { useEffect, useState } from 'react';
+import { DownOutlined, SearchOutlined } from '@ant-design/icons';
+import { Avatar, Dropdown } from 'antd';
+import type { MenuProps } from 'antd';
+import { useEffect, useMemo, useState } from 'react';
 import type { PropsWithChildren } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { authApi } from '../../api/auth';
 import { clearAuthToken, hasAuthToken } from '../../lib/auth';
+import type { AuthUser } from '../../types/auth';
 import './MainLayout.css';
 
 type NavItem = {
@@ -33,13 +37,27 @@ const topicTabs = [
   '代码人生',
 ];
 
+const roleLabelMap = {
+  ADMIN: '管理员',
+  EDITOR: '编辑',
+  AUTHOR: '作者',
+} as const;
+
 function MainLayout({ children }: PropsWithChildren) {
   const location = useLocation();
   const navigate = useNavigate();
   const [authed, setAuthed] = useState(false);
+  const [user, setUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
-    const syncAuth = () => setAuthed(hasAuthToken());
+    const syncAuth = () => {
+      const next = hasAuthToken();
+      setAuthed(next);
+      if (!next) {
+        setUser(null);
+      }
+    };
+
     syncAuth();
 
     window.addEventListener('storage', syncAuth);
@@ -51,10 +69,64 @@ function MainLayout({ children }: PropsWithChildren) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!authed) return;
+
+    let active = true;
+
+    authApi
+      .me()
+      .then((profile) => {
+        if (!active) return;
+        setUser(profile);
+      })
+      .catch(() => {
+        if (!active) return;
+        clearAuthToken();
+        setAuthed(false);
+        setUser(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [authed]);
+
   const logout = () => {
     clearAuthToken();
     setAuthed(false);
+    setUser(null);
     navigate('/auth/login', { replace: true });
+  };
+
+  const displayName = useMemo(() => {
+    if (!user) return '已登录';
+    return user.name?.trim() || user.email.split('@')[0] || '已登录';
+  }, [user]);
+
+  const userMenu: MenuProps = {
+    items: [
+      {
+        key: 'role',
+        label: user ? roleLabelMap[user.role] : '用户',
+        disabled: true,
+      },
+      {
+        key: 'email',
+        label: user?.email ?? '-',
+        disabled: true,
+      },
+      { type: 'divider' },
+      {
+        key: 'logout',
+        label: '退出登录',
+      },
+    ],
+    onClick: ({ key }) => {
+      if (key === 'logout') {
+        logout();
+      }
+    },
   };
 
   return (
@@ -106,12 +178,15 @@ function MainLayout({ children }: PropsWithChildren) {
             </Link>
 
             {authed ? (
-              <>
-                <span className="juejin-user-badge">已登录</span>
-                <button type="button" className="juejin-login-btn" onClick={logout}>
-                  退出登录
+              <Dropdown menu={userMenu} trigger={['click']}>
+                <button type="button" className="juejin-user-menu" aria-label="用户菜单">
+                  <Avatar size={30} style={{ backgroundColor: '#1e80ff' }}>
+                    {displayName.slice(0, 1).toUpperCase()}
+                  </Avatar>
+                  <span className="juejin-user-name">{displayName}</span>
+                  <DownOutlined className="juejin-user-arrow" />
                 </button>
-              </>
+              </Dropdown>
             ) : (
               <Link to="/auth/login" className="juejin-login-btn">
                 登录 | 注册

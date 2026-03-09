@@ -2,7 +2,7 @@ import axios, { AxiosError } from 'axios';
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api';
-const TOKEN_STORAGE_KEY = 'blog-system-token';
+export const TOKEN_STORAGE_KEY = 'blog-system-token';
 
 export class HttpClientError extends Error {
   status?: number;

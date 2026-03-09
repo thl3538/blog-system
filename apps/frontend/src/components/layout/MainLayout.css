@@ -160,12 +160,16 @@
 }
 
 .juejin-login-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   height: 36px;
   border: 1px solid #c9cdd4;
   border-radius: 4px;
   background: #fff;
   color: #4e5969;
   font-size: 14px;
+  text-decoration: none;
   padding: 0 12px;
   cursor: pointer;
   transition: color var(--jj-transition-fast),
@@ -176,6 +180,11 @@
   color: var(--jj-blue);
   border-color: #91c3ff;
   background: #f4f8ff;
+}
+
+.juejin-user-badge {
+  color: var(--jj-text-secondary);
+  font-size: 13px;
 }
 
 .juejin-topic-wrap {

@@ -1,6 +1,8 @@
 import { SearchOutlined } from '@ant-design/icons';
+import { useEffect, useState } from 'react';
 import type { PropsWithChildren } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { clearAuthToken, hasAuthToken } from '../../lib/auth';
 import './MainLayout.css';
 
 type NavItem = {
@@ -33,6 +35,27 @@ const topicTabs = [
 
 function MainLayout({ children }: PropsWithChildren) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [authed, setAuthed] = useState(false);
+
+  useEffect(() => {
+    const syncAuth = () => setAuthed(hasAuthToken());
+    syncAuth();
+
+    window.addEventListener('storage', syncAuth);
+    window.addEventListener('focus', syncAuth);
+
+    return () => {
+      window.removeEventListener('storage', syncAuth);
+      window.removeEventListener('focus', syncAuth);
+    };
+  }, []);
+
+  const logout = () => {
+    clearAuthToken();
+    setAuthed(false);
+    navigate('/auth/login', { replace: true });
+  };
 
   return (
     <div className="juejin-shell">
@@ -81,9 +104,19 @@ function MainLayout({ children }: PropsWithChildren) {
             <Link to="/posts/new" className="juejin-creator-btn">
               创作者中心
             </Link>
-            <button type="button" className="juejin-login-btn">
-              登录 | 注册
-            </button>
+
+            {authed ? (
+              <>
+                <span className="juejin-user-badge">已登录</span>
+                <button type="button" className="juejin-login-btn" onClick={logout}>
+                  退出登录
+                </button>
+              </>
+            ) : (
+              <Link to="/auth/login" className="juejin-login-btn">
+                登录 | 注册
+              </Link>
+            )}
           </div>
         </div>
 

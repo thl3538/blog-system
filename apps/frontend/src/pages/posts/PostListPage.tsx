@@ -61,7 +61,7 @@ function PostListPage() {
   const [keyword, setKeyword] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [activeFeed, setActiveFeed] = useState<'recommend' | 'latest'>('recommend');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | PostStatus>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | PostStatus>('PUBLISHED');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);

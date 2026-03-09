@@ -1,0 +1,43 @@
+.jj-auth-shell {
+  display: grid;
+  min-height: calc(100vh - 140px);
+  place-items: center;
+  padding: 24px 0;
+}
+
+.jj-auth-card {
+  width: min(100%, 420px);
+  border: 1px solid var(--jj-border);
+  border-radius: var(--jj-radius-md);
+  background: #fff;
+  box-shadow: var(--jj-shadow-card);
+  padding: 20px;
+}
+
+.jj-auth-title {
+  margin: 0 0 6px;
+  color: var(--jj-text-primary);
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.jj-auth-subtitle {
+  margin: 0 0 18px;
+  color: var(--jj-text-secondary);
+  font-size: 13px;
+}
+
+.jj-auth-footer {
+  margin-top: 6px;
+  color: var(--jj-text-secondary);
+  font-size: 13px;
+}
+
+.jj-auth-footer a {
+  color: var(--jj-blue);
+  text-decoration: none;
+}
+
+.jj-auth-footer a:hover {
+  text-decoration: underline;
+}

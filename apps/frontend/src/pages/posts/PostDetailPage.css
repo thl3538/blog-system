@@ -198,6 +198,29 @@
   font-size: 13px;
 }
 
+.jj-item-status {
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 4px 8px;
+}
+
+.jj-item-status.is-published {
+  background: #e8f7e8;
+  color: #1f7a1f;
+}
+
+.jj-item-status.is-draft {
+  background: #fff7e8;
+  color: #ad6800;
+}
+
+.jj-item-status.is-archived {
+  background: #f1f2f5;
+  color: #6b7280;
+}
+
 .jj-article-content {
   padding: 26px 30px 32px;
   color: #252933;

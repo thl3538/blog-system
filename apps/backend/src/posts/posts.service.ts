@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { PostStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { CreatePostDto } from './dto/create-post.dto';
@@ -21,6 +21,8 @@ export class PostsService {
       title: post.title,
       summary: post.summary,
       content: post.content,
+      status: post.status,
+      publishedAt: post.publishedAt,
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
       likesCount: post._count.likes,
@@ -34,16 +36,20 @@ export class PostsService {
     const keyword = query.keyword?.trim();
     const sortBy = query.sortBy ?? 'createdAt';
     const order = query.order ?? 'desc';
+    const status = query.status;
 
-    const where: Prisma.PostWhereInput | undefined = keyword
-      ? {
-          OR: [
-            { title: { contains: keyword } },
-            { summary: { contains: keyword } },
-            { content: { contains: keyword } },
-          ],
-        }
-      : undefined;
+    const where: Prisma.PostWhereInput = {
+      ...(keyword
+        ? {
+            OR: [
+              { title: { contains: keyword } },
+              { summary: { contains: keyword } },
+              { content: { contains: keyword } },
+            ],
+          }
+        : {}),
+      ...(status ? { status } : {}),
+    };
 
     const [items, total] = await this.prisma.$transaction([
       this.prisma.post.findMany({
@@ -70,6 +76,7 @@ export class PostsService {
       pageSize,
       sortBy,
       order,
+      status,
       totalPages: Math.ceil(total / pageSize),
     };
   }
@@ -95,11 +102,15 @@ export class PostsService {
   }
 
   async create(dto: CreatePostDto) {
+    const status = dto.status ?? PostStatus.PUBLISHED;
+
     const created = await this.prisma.post.create({
       data: {
         title: dto.title,
         summary: dto.summary,
         content: dto.content,
+        status,
+        publishedAt: status === PostStatus.PUBLISHED ? new Date() : null,
       },
       include: {
         _count: {
@@ -115,35 +126,38 @@ export class PostsService {
   }
 
   async update(id: number, dto: UpdatePostDto) {
-    try {
-      const updated = await this.prisma.post.update({
-        where: { id },
-        data: {
-          ...(dto.title !== undefined ? { title: dto.title } : {}),
-          ...(dto.summary !== undefined ? { summary: dto.summary } : {}),
-          ...(dto.content !== undefined ? { content: dto.content } : {}),
-        },
-        include: {
-          _count: {
-            select: {
-              likes: true,
-              comments: true,
-            },
+    const current = await this.prisma.post.findUnique({ where: { id } });
+    if (!current) {
+      throw new NotFoundException(`Post ${id} not found`);
+    }
+
+    const nextStatus = dto.status ?? current.status;
+
+    const nextPublishedAt =
+      nextStatus === PostStatus.PUBLISHED
+        ? (current.publishedAt ?? new Date())
+        : null;
+
+    const updated = await this.prisma.post.update({
+      where: { id },
+      data: {
+        ...(dto.title !== undefined ? { title: dto.title } : {}),
+        ...(dto.summary !== undefined ? { summary: dto.summary } : {}),
+        ...(dto.content !== undefined ? { content: dto.content } : {}),
+        ...(dto.status !== undefined ? { status: dto.status } : {}),
+        ...(dto.status !== undefined ? { publishedAt: nextPublishedAt } : {}),
+      },
+      include: {
+        _count: {
+          select: {
+            likes: true,
+            comments: true,
           },
         },
-      });
+      },
+    });
 
-      return this.normalizePost(updated);
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2025'
-      ) {
-        throw new NotFoundException(`Post ${id} not found`);
-      }
-
-      throw error;
-    }
+    return this.normalizePost(updated);
   }
 
   async remove(id: number) {

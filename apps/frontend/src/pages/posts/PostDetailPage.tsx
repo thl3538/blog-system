@@ -34,6 +34,12 @@ import './PostDetailPage.css';
 
 const authorPool = ['林北辰', '周南', '代码田螺', '阿晨同学', '木木前端', '严叔'];
 
+const statusTextMap = {
+  DRAFT: '草稿',
+  PUBLISHED: '已发布',
+  ARCHIVED: '已归档',
+} as const;
+
 function PostDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -276,6 +282,9 @@ function PostDetailPage() {
                   </div>
 
                   <div className="jj-article-stats">
+                    <span className={`jj-item-status is-${post.status.toLowerCase()}`}>
+                      {statusTextMap[post.status]}
+                    </span>
                     <span>
                       <EyeOutlined /> 阅读 {Math.max(post.id * 38, 680)}
                     </span>
@@ -397,6 +406,7 @@ function PostDetailPage() {
           <div className="jj-detail-card jj-side-card">
             <div className="jj-side-title">文章信息</div>
             <ul>
+              <li>状态：{post ? statusTextMap[post.status] : '-'}</li>
               <li>字数：{post?.content.length ?? 0}</li>
               <li>点赞：{likeState.count}</li>
               <li>评论：{comments.length}</li>

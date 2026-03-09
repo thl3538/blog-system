@@ -23,18 +23,27 @@ model User {
   updatedAt    DateTime @updatedAt
 }
 
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 model Post {
-  id        Int           @id @default(autoincrement())
-  title     String        @db.VarChar(120)
-  summary   String        @db.VarChar(300)
-  content   String
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  likes     PostLike[]
-  comments  PostComment[]
+  id          Int           @id @default(autoincrement())
+  title       String        @db.VarChar(120)
+  summary     String        @db.VarChar(300)
+  content     String
+  status      PostStatus    @default(PUBLISHED)
+  publishedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  likes       PostLike[]
+  comments    PostComment[]
 
   @@index([createdAt])
   @@index([title])
+  @@index([status, createdAt])
 }
 
 model PostLike {

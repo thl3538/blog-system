@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import {
+  IsIn,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 
 export class CreatePostDto {
   @IsString()
@@ -14,4 +20,8 @@ export class CreatePostDto {
   @IsString()
   @IsNotEmpty()
   content!: string;
+
+  @IsOptional()
+  @IsIn(['DRAFT', 'PUBLISHED', 'ARCHIVED'])
+  status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 }

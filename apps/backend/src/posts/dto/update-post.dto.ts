@@ -1,4 +1,4 @@
-import { IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class UpdatePostDto {
   @IsString()
@@ -14,4 +14,8 @@ export class UpdatePostDto {
   @IsString()
   @IsOptional()
   content?: string;
+
+  @IsOptional()
+  @IsIn(['DRAFT', 'PUBLISHED', 'ARCHIVED'])
+  status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 }

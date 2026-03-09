@@ -51,7 +51,7 @@
   justify-content: space-between;
   gap: 10px;
   border-bottom: 1px solid var(--jj-border-light);
-  padding: 0 18px;
+  padding: 0 18px 12px;
   background: #fff;
 }
 
@@ -78,6 +78,40 @@
 .jj-feed-tab.is-active {
   color: var(--jj-blue);
   border-bottom-color: var(--jj-blue);
+}
+
+.jj-feed-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.jj-status-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  background: #f2f3f5;
+  padding: 3px;
+}
+
+.jj-status-pill {
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--jj-text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 6px 10px;
+}
+
+.jj-status-pill.is-active {
+  background: #fff;
+  color: var(--jj-blue);
+  box-shadow: 0 1px 2px rgba(29, 33, 41, 0.08);
 }
 
 .jj-feed-search {
@@ -186,6 +220,29 @@
 
 .jj-feed-item-meta .dot {
   color: #c9cdd4;
+}
+
+.jj-item-status {
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 4px 8px;
+}
+
+.jj-item-status.is-published {
+  background: #e8f7e8;
+  color: #1f7a1f;
+}
+
+.jj-item-status.is-draft {
+  background: #fff7e8;
+  color: #ad6800;
+}
+
+.jj-item-status.is-archived {
+  background: #f1f2f5;
+  color: #6b7280;
 }
 
 .jj-feed-link h3 {

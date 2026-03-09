@@ -17,6 +17,7 @@ const buildQuery = (query: PostListQuery) => {
   if (query.keyword?.trim()) params.set('keyword', query.keyword.trim());
   if (query.sortBy) params.set('sortBy', query.sortBy);
   if (query.order) params.set('order', query.order);
+  if (query.status) params.set('status', query.status);
 
   return params.toString();
 };

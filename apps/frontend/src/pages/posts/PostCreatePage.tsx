@@ -39,6 +39,7 @@ function PostCreatePage() {
         title: draft.title ?? '',
         summary: draft.summary ?? '',
         content: draft.content ?? '',
+        status: draft.status ?? 'PUBLISHED',
       });
       if (draft.title || draft.summary || draft.content) {
         message.info('已恢复本地草稿');
@@ -102,7 +103,7 @@ function PostCreatePage() {
             <Form<FormValues>
               layout="vertical"
               form={form}
-              initialValues={{ title: '', summary: '', content: '' }}
+              initialValues={{ title: '', summary: '', content: '', status: 'PUBLISHED' }}
               onFinish={submit}
               className="jj-editor-form"
             >
@@ -124,6 +125,16 @@ function PostCreatePage() {
                 rules={[{ required: true, message: '请输入摘要' }]}
               >
                 <Input maxLength={300} placeholder="一句话概括这篇文章（用于列表展示）" />
+              </Form.Item>
+
+              <Form.Item label="发布状态" name="status" rules={[{ required: true }]}>
+                <Segmented
+                  options={[
+                    { label: '公开发布', value: 'PUBLISHED' },
+                    { label: '草稿', value: 'DRAFT' },
+                    { label: '归档', value: 'ARCHIVED' },
+                  ]}
+                />
               </Form.Item>
 
               <div className="jj-editor-actions-row">

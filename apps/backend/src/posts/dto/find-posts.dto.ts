@@ -26,4 +26,8 @@ export class FindPostsDto {
   @IsOptional()
   @IsIn(['asc', 'desc'])
   order?: 'asc' | 'desc' = 'desc';
+
+  @IsOptional()
+  @IsIn(['DRAFT', 'PUBLISHED', 'ARCHIVED'])
+  status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 }

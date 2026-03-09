@@ -13,7 +13,7 @@ import { postsApi } from '../../api/posts';
 import MainLayout from '../../components/layout/MainLayout';
 import ServiceUnavailable from '../../components/ServiceUnavailable';
 import { HttpClientError, isServiceUnavailableError } from '../../lib/http';
-import type { PostItem } from '../../types/post';
+import type { PostItem, PostStatus } from '../../types/post';
 import './PostListPage.css';
 
 const channelTabs = ['推荐', '最新', '热榜', '后端', '前端', 'AI', '阅读'];
@@ -30,6 +30,12 @@ const quickNavItems = [
 
 const categoryPool = ['后端', '前端', '人工智能', '架构设计', '工程化', '开源'];
 const authorPool = ['林北辰', '周南', '代码田螺', '阿晨同学', '木木前端', '严叔'];
+
+const statusLabels: Record<PostStatus, string> = {
+  DRAFT: '草稿',
+  PUBLISHED: '已发布',
+  ARCHIVED: '已归档',
+};
 
 const getMeta = (post: PostItem) => {
   const category = categoryPool[post.id % categoryPool.length];
@@ -55,6 +61,7 @@ function PostListPage() {
   const [keyword, setKeyword] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [activeFeed, setActiveFeed] = useState<'recommend' | 'latest'>('recommend');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | PostStatus>('ALL');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
@@ -63,10 +70,12 @@ function PostListPage() {
     page?: number;
     pageSize?: number;
     keyword?: string;
+    status?: 'ALL' | PostStatus;
   }) => {
     const nextPage = params?.page ?? page;
     const nextPageSize = params?.pageSize ?? pageSize;
     const nextKeyword = params?.keyword ?? keyword;
+    const nextStatus = params?.status ?? statusFilter;
 
     setLoading(true);
     try {
@@ -74,6 +83,7 @@ function PostListPage() {
         page: nextPage,
         pageSize: nextPageSize,
         keyword: nextKeyword,
+        status: nextStatus === 'ALL' ? undefined : nextStatus,
         sortBy: 'createdAt',
         order: 'desc',
       });
@@ -83,6 +93,7 @@ function PostListPage() {
       setTotal(data.total);
       setPage(data.page);
       setPageSize(data.pageSize);
+      setStatusFilter(nextStatus);
       setKeyword(nextKeyword);
       setSearchInput(nextKeyword);
     } catch (error) {
@@ -176,27 +187,44 @@ function PostListPage() {
                 ))}
               </div>
 
-              <label className="jj-feed-search">
-                <SearchOutlined />
-                <input
-                  value={searchInput}
-                  placeholder="搜索文章标题/摘要"
-                  onChange={(event) => setSearchInput(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
+              <div className="jj-feed-actions">
+                <div className="jj-status-filter" role="tablist" aria-label="文章状态筛选">
+                  {(['ALL', 'PUBLISHED', 'DRAFT', 'ARCHIVED'] as const).map((status) => (
+                    <button
+                      key={status}
+                      type="button"
+                      className={`jj-status-pill ${statusFilter === status ? 'is-active' : ''}`}
+                      onClick={() => {
+                        void fetchList({ page: 1, keyword: searchInput, status });
+                      }}
+                    >
+                      {status === 'ALL' ? '全部' : statusLabels[status]}
+                    </button>
+                  ))}
+                </div>
+
+                <label className="jj-feed-search">
+                  <SearchOutlined />
+                  <input
+                    value={searchInput}
+                    placeholder="搜索文章标题/摘要"
+                    onChange={(event) => setSearchInput(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        void fetchList({ page: 1, keyword: searchInput });
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
                       void fetchList({ page: 1, keyword: searchInput });
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    void fetchList({ page: 1, keyword: searchInput });
-                  }}
-                >
-                  搜索
-                </button>
-              </label>
+                    }}
+                  >
+                    搜索
+                  </button>
+                </label>
+              </div>
             </div>
 
             {loading ? (
@@ -224,6 +252,9 @@ function PostListPage() {
                               <span>{meta.author}</span>
                               <span className="dot">·</span>
                               <span>{meta.category}</span>
+                              <span className={`jj-item-status is-${post.status.toLowerCase()}`}>
+                                {statusLabels[post.status]}
+                              </span>
                               <span className="dot">·</span>
                               <span>
                                 {new Date(post.createdAt).toLocaleDateString()} · {meta.minutes}分钟前

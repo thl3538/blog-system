@@ -1,8 +1,12 @@
+export type PostStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+
 export type PostItem = {
   id: number;
   title: string;
   summary: string;
   content: string;
+  status: PostStatus;
+  publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
   likesCount: number;
@@ -15,6 +19,7 @@ export type PostListQuery = {
   keyword?: string;
   sortBy?: 'createdAt' | 'title';
   order?: 'asc' | 'desc';
+  status?: PostStatus;
 };
 
 export type PostListResponse = {
@@ -25,12 +30,14 @@ export type PostListResponse = {
   totalPages: number;
   sortBy: 'createdAt' | 'title';
   order: 'asc' | 'desc';
+  status?: PostStatus;
 };
 
 export type PostPayload = {
   title: string;
   summary: string;
   content: string;
+  status: PostStatus;
 };
 
 export type LikeState = {

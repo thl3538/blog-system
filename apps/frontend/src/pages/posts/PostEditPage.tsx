@@ -47,6 +47,7 @@ function PostEditPage() {
           title: post.title,
           summary: post.summary,
           content: post.content,
+          status: post.status,
         };
 
         if (typeof window !== 'undefined') {
@@ -58,6 +59,7 @@ function PostEditPage() {
                 title: draft.title ?? values.title,
                 summary: draft.summary ?? values.summary,
                 content: draft.content ?? values.content,
+                status: draft.status ?? values.status,
               };
               message.info('已恢复该文章本地草稿');
             } catch {
@@ -168,6 +170,16 @@ function PostEditPage() {
                   rules={[{ required: true, message: '请输入摘要' }]}
                 >
                   <Input maxLength={300} placeholder="一句话概括这篇文章（用于列表展示）" />
+                </Form.Item>
+
+                <Form.Item label="发布状态" name="status" rules={[{ required: true }]}>
+                  <Segmented
+                    options={[
+                      { label: '公开发布', value: 'PUBLISHED' },
+                      { label: '草稿', value: 'DRAFT' },
+                      { label: '归档', value: 'ARCHIVED' },
+                    ]}
+                  />
                 </Form.Item>
 
                 <div className="jj-editor-actions-row">

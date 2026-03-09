@@ -1,15 +1,17 @@
 .juejin-shell {
   min-height: 100vh;
-  background: #f4f5f5;
-  color: #1d2129;
+  background: var(--jj-bg-page);
+  color: var(--jj-text-primary);
 }
 
 .juejin-header {
   position: sticky;
   top: 0;
   z-index: 40;
-  border-bottom: 1px solid #e5e6eb;
-  background: #fff;
+  border-bottom: 1px solid var(--jj-border);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
 }
 
 .juejin-header-main {
@@ -47,10 +49,11 @@
   color: #fff;
   font-size: 14px;
   font-weight: 700;
+  box-shadow: 0 4px 10px rgba(30, 128, 255, 0.28);
 }
 
 .juejin-logo-text {
-  color: #1e80ff;
+  color: var(--jj-blue);
   font-size: 20px;
   font-weight: 700;
   letter-spacing: 0.2px;
@@ -64,21 +67,40 @@
 }
 
 .juejin-nav-item {
+  position: relative;
   border: none;
   background: transparent;
-  color: #515767;
+  color: var(--jj-text-secondary);
   text-decoration: none;
   cursor: pointer;
   padding: 8px 10px;
   font-size: 15px;
   line-height: 22px;
-  transition: color 0.2s;
+  transition: color var(--jj-transition-fast);
   white-space: nowrap;
+}
+
+.juejin-nav-item::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 2px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--jj-blue);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform var(--jj-transition-fast);
 }
 
 .juejin-nav-item:hover,
 .juejin-nav-item.is-active {
-  color: #1e80ff;
+  color: var(--jj-blue);
+}
+
+.juejin-nav-item.is-active::after {
+  transform: scaleX(1);
 }
 
 .juejin-header-right {
@@ -93,14 +115,21 @@
   height: 36px;
   align-items: center;
   gap: 8px;
-  border: 1px solid #c2c8d1;
+  border: 1px solid #c9cdd4;
   border-radius: 4px;
   background: #fff;
   padding: 0 10px;
+  transition: border-color var(--jj-transition-fast),
+    box-shadow var(--jj-transition-fast);
+}
+
+.juejin-search:focus-within {
+  border-color: #91c3ff;
+  box-shadow: 0 0 0 3px rgba(30, 128, 255, 0.1);
 }
 
 .juejin-search-icon {
-  color: #8a919f;
+  color: var(--jj-text-tertiary);
 }
 
 .juejin-search input {
@@ -108,34 +137,45 @@
   border: none;
   outline: none;
   font-size: 14px;
-  color: #252933;
+  color: var(--jj-text-primary);
 }
 
 .juejin-creator-btn {
   height: 36px;
   border-radius: 4px;
-  background: #1e80ff;
+  background: var(--jj-blue);
   color: #fff;
   text-decoration: none;
   font-size: 14px;
   line-height: 36px;
   padding: 0 14px;
-  transition: background 0.2s;
+  transition: background var(--jj-transition-fast),
+    box-shadow var(--jj-transition-fast), transform var(--jj-transition-fast);
 }
 
 .juejin-creator-btn:hover {
   background: #1171ee;
+  box-shadow: 0 6px 16px rgba(30, 128, 255, 0.24);
+  transform: translateY(-1px);
 }
 
 .juejin-login-btn {
   height: 36px;
-  border: 1px solid #c2c8d1;
+  border: 1px solid #c9cdd4;
   border-radius: 4px;
   background: #fff;
   color: #4e5969;
   font-size: 14px;
   padding: 0 12px;
   cursor: pointer;
+  transition: color var(--jj-transition-fast),
+    border-color var(--jj-transition-fast), background var(--jj-transition-fast);
+}
+
+.juejin-login-btn:hover {
+  color: var(--jj-blue);
+  border-color: #91c3ff;
+  background: #f4f8ff;
 }
 
 .juejin-topic-wrap {
@@ -155,24 +195,27 @@
 
 .juejin-topic-tab {
   border: none;
+  border-radius: 4px;
   background: transparent;
-  color: #515767;
+  color: var(--jj-text-secondary);
   cursor: pointer;
   font-size: 14px;
-  padding: 8px 12px;
+  padding: 7px 10px;
   white-space: nowrap;
+  transition: color var(--jj-transition-fast), background var(--jj-transition-fast);
 }
 
 .juejin-topic-tab.is-active,
 .juejin-topic-tab:hover {
-  color: #1e80ff;
+  color: var(--jj-blue);
+  background: #f4f8ff;
 }
 
 .juejin-main {
   margin: 0 auto;
   width: 100%;
   max-width: 1220px;
-  padding: 18px 14px 40px;
+  padding: 20px 14px 44px;
 }
 
 @media (max-width: 1100px) {
@@ -182,6 +225,11 @@
 
   .juejin-nav-item {
     padding: 8px;
+  }
+
+  .juejin-nav-item::after {
+    left: 8px;
+    right: 8px;
   }
 }
 

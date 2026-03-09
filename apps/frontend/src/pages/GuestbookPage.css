@@ -5,10 +5,11 @@
 }
 
 .jj-guestbook-feed-card {
-  border: 1px solid #e5e6eb;
-  border-radius: 8px;
+  border: 1px solid var(--jj-border);
+  border-radius: var(--jj-radius-md);
   background: #fff;
   overflow: hidden;
+  box-shadow: var(--jj-shadow-card);
 }
 
 .jj-guestbook-header {
@@ -16,7 +17,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  border-bottom: 1px solid #f2f3f5;
+  border-bottom: 1px solid var(--jj-border-light);
   padding: 20px;
 }
 
@@ -25,27 +26,27 @@
   align-items: center;
   gap: 8px;
   margin: 0;
-  color: #1d2129;
+  color: var(--jj-text-primary);
   font-size: 24px;
 }
 
 .jj-guestbook-header p {
   margin: 10px 0 0;
-  color: #515767;
+  color: var(--jj-text-secondary);
   font-size: 14px;
 }
 
 .jj-guestbook-header > span {
   border-radius: 999px;
   background: #f4f8ff;
-  color: #1e80ff;
+  color: var(--jj-blue);
   font-size: 12px;
   padding: 4px 10px;
   white-space: nowrap;
 }
 
 .jj-guestbook-form-wrap {
-  border-bottom: 1px solid #f2f3f5;
+  border-bottom: 1px solid var(--jj-border-light);
   padding: 18px 20px;
 }
 
@@ -68,8 +69,15 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  border-bottom: 1px solid #f2f3f5;
-  padding: 16px 0;
+  border-bottom: 1px solid var(--jj-border-light);
+  border-radius: 8px;
+  padding: 16px 8px;
+  margin: 0 -8px;
+  transition: background var(--jj-transition-fast);
+}
+
+.jj-message-item:hover {
+  background: #fbfcff;
 }
 
 .jj-message-item:last-child {
@@ -93,7 +101,7 @@
 }
 
 .jj-message-content .head span {
-  color: #8a919f;
+  color: var(--jj-text-tertiary);
   font-size: 12px;
   display: inline-flex;
   align-items: center;
@@ -115,15 +123,16 @@
 }
 
 .jj-side-card {
-  border: 1px solid #e5e6eb;
-  border-radius: 8px;
+  border: 1px solid var(--jj-border);
+  border-radius: var(--jj-radius-md);
   background: #fff;
   padding: 14px;
+  box-shadow: var(--jj-shadow-card);
 }
 
 .jj-side-card h4 {
   margin: 0;
-  color: #1d2129;
+  color: var(--jj-text-primary);
   font-size: 16px;
 }
 
@@ -168,12 +177,12 @@
 }
 
 .jj-hot-user-item .count {
-  color: #8a919f;
+  color: var(--jj-text-tertiary);
   font-size: 12px;
 }
 
 .jj-side-empty {
-  color: #8a919f;
+  color: var(--jj-text-tertiary);
   font-size: 13px;
 }
 

@@ -22,10 +22,11 @@
   color: #4e5969;
   font-size: 14px;
   text-decoration: none;
+  transition: color var(--jj-transition-fast);
 }
 
 .jj-editor-back:hover {
-  color: #1e80ff;
+  color: var(--jj-blue);
 }
 
 .jj-editor-toolbar-right {
@@ -35,7 +36,7 @@
 }
 
 .jj-editor-saved {
-  color: #8a919f;
+  color: var(--jj-text-tertiary);
   font-size: 12px;
 }
 
@@ -49,10 +50,11 @@
 }
 
 .jj-editor-card {
-  border: 1px solid #e5e6eb;
-  border-radius: 8px;
+  border: 1px solid var(--jj-border);
+  border-radius: var(--jj-radius-md);
   background: #fff;
   overflow: hidden;
+  box-shadow: var(--jj-shadow-card);
 }
 
 .jj-editor-form {
@@ -65,17 +67,18 @@
 
 .jj-title-input {
   border-width: 0 !important;
-  border-bottom: 1px solid #e5e6eb !important;
+  border-bottom: 1px solid var(--jj-border) !important;
   border-radius: 0 !important;
   box-shadow: none !important;
-  color: #1d2129 !important;
+  color: var(--jj-text-primary) !important;
   font-size: 34px !important;
   font-weight: 700;
+  letter-spacing: 0.2px;
   padding: 8px 2px !important;
 }
 
 .jj-title-input::placeholder {
-  color: #8a919f !important;
+  color: var(--jj-text-tertiary) !important;
   font-weight: 500;
 }
 
@@ -89,14 +92,24 @@
 }
 
 .jj-editor-md-wrap {
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--jj-border);
   border-radius: 8px;
   overflow: hidden;
+  transition: border-color var(--jj-transition-fast), box-shadow var(--jj-transition-fast);
+}
+
+.jj-editor-md-wrap:focus-within {
+  border-color: #91c3ff;
+  box-shadow: 0 0 0 3px rgba(30, 128, 255, 0.1);
 }
 
 .jj-editor-md-wrap .w-md-editor {
   border: none;
   box-shadow: none;
+}
+
+.jj-editor-md-wrap .w-md-editor-toolbar {
+  border-bottom-color: var(--jj-border-light);
 }
 
 .jj-editor-loading,
@@ -111,15 +124,16 @@
 }
 
 .jj-editor-side-card {
-  border: 1px solid #e5e6eb;
-  border-radius: 8px;
+  border: 1px solid var(--jj-border);
+  border-radius: var(--jj-radius-md);
   background: #fff;
   padding: 14px;
+  box-shadow: var(--jj-shadow-card);
 }
 
 .jj-editor-side-card h4 {
   margin: 0;
-  color: #1d2129;
+  color: var(--jj-text-primary);
   font-size: 16px;
 }
 
@@ -146,7 +160,7 @@
 }
 
 .jj-editor-tags span {
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--jj-border);
   border-radius: 999px;
   color: #4e5969;
   font-size: 12px;

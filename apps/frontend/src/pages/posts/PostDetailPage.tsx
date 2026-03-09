@@ -3,25 +3,23 @@ import {
   CommentOutlined,
   DeleteOutlined,
   EditOutlined,
+  EyeOutlined,
   LikeFilled,
   LikeOutlined,
+  StarOutlined,
 } from '@ant-design/icons';
 import {
   Avatar,
   Button,
-  Card,
   Empty,
   Form,
   Input,
   List,
   Modal,
   Skeleton,
-  Space,
-  Tag,
-  Typography,
   message,
 } from 'antd';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -30,6 +28,9 @@ import MainLayout from '../../components/layout/MainLayout';
 import { HttpClientError } from '../../lib/http';
 import { getVisitorId } from '../../lib/visitor';
 import type { CreateCommentPayload, PostComment, PostItem } from '../../types/post';
+import './PostDetailPage.css';
+
+const authorPool = ['林北辰', '周南', '代码田螺', '阿晨同学', '木木前端', '严叔'];
 
 function PostDetailPage() {
   const { id } = useParams();
@@ -143,99 +144,118 @@ function PostDetailPage() {
     }
   };
 
+  const authorName = useMemo(() => {
+    if (!post) return '-';
+    return authorPool[post.id % authorPool.length];
+  }, [post]);
+
+  const readingMinutes = useMemo(() => {
+    if (!post?.content) return 1;
+    return Math.max(1, Math.round(post.content.length / 420));
+  }, [post]);
+
   return (
     <MainLayout>
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[72px_minmax(0,1fr)_300px]">
-        <Card className="sticky top-24 hidden !border-slate-200 !shadow-none xl:block">
-          <Space direction="vertical" className="!w-full" size={10}>
-            <Button
-              type={likeState.liked ? 'primary' : 'default'}
-              shape="circle"
-              icon={likeState.liked ? <LikeFilled /> : <LikeOutlined />}
-              onClick={toggleLike}
-            />
-            <Typography.Text className="text-center text-xs text-slate-500">
-              {likeState.count}
-            </Typography.Text>
+      <div className="jj-detail-grid">
+        <aside className="jj-detail-actions">
+          <button
+            type="button"
+            className={`jj-action-btn ${likeState.liked ? 'is-active' : ''}`}
+            onClick={toggleLike}
+            aria-label="点赞"
+          >
+            {likeState.liked ? <LikeFilled /> : <LikeOutlined />}
+          </button>
+          <span>{likeState.count}</span>
 
-            <a href="#comments" className="text-center">
-              <Button shape="circle" icon={<CommentOutlined />} />
-            </a>
-            <Typography.Text className="text-center text-xs text-slate-500">
-              {comments.length}
-            </Typography.Text>
-          </Space>
-        </Card>
+          <a href="#comments" className="jj-action-btn" aria-label="评论">
+            <CommentOutlined />
+          </a>
+          <span>{comments.length}</span>
 
-        <Card className="!border-slate-200 !shadow-none">
-          <Space direction="vertical" size={14} className="!w-full">
-            <Space wrap>
-              <Link to="/">
-                <Button icon={<ArrowLeftOutlined />}>返回列表</Button>
+          <button type="button" className="jj-action-btn" aria-label="收藏">
+            <StarOutlined />
+          </button>
+        </aside>
+
+        <div className="jj-detail-main">
+          <div className="jj-detail-card">
+            <div className="jj-detail-tools">
+              <Link to="/" className="jj-tool-link">
+                <ArrowLeftOutlined /> 返回首页
               </Link>
+
               {post ? (
-                <>
-                  <Link to={`/posts/${post.id}/edit`}>
-                    <Button icon={<EditOutlined />}>编辑</Button>
+                <div className="jj-tool-right">
+                  <Link to={`/posts/${post.id}/edit`} className="jj-tool-link">
+                    <EditOutlined /> 编辑
                   </Link>
-                  <Button danger icon={<DeleteOutlined />} onClick={handleDelete}>
-                    删除
-                  </Button>
-                </>
+                  <button type="button" className="jj-tool-danger" onClick={handleDelete}>
+                    <DeleteOutlined /> 删除
+                  </button>
+                </div>
               ) : null}
-            </Space>
+            </div>
 
             {loading ? (
-              <Skeleton active paragraph={{ rows: 12 }} title={{ width: '55%' }} />
+              <div className="jj-detail-loading">
+                <Skeleton active paragraph={{ rows: 14 }} title={{ width: '48%' }} />
+              </div>
             ) : post ? (
               <>
-                <Typography.Title level={2} className="!mb-1">
-                  {post.title}
-                </Typography.Title>
-                <Typography.Paragraph className="!mb-1 !text-slate-600">
-                  {post.summary}
-                </Typography.Paragraph>
-                <Space wrap className="!text-xs !text-slate-500">
-                  <span>发布于 {new Date(post.createdAt).toLocaleString()}</span>
-                  <span>·</span>
-                  <span>更新于 {new Date(post.updatedAt).toLocaleString()}</span>
-                  <Tag color="blue">点赞 {likeState.count}</Tag>
-                  <Tag color="gold">评论 {comments.length}</Tag>
-                </Space>
+                <header className="jj-article-header">
+                  <h1>{post.title}</h1>
+                  <p>{post.summary}</p>
 
-                <div className="mt-2 rounded-lg border border-slate-200 bg-white p-4">
-                  <div className="prose max-w-none prose-slate prose-pre:overflow-x-auto">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {post.content}
-                    </ReactMarkdown>
+                  <div className="jj-article-author-row">
+                    <Avatar style={{ backgroundColor: '#1e80ff' }}>
+                      {authorName.slice(0, 1)}
+                    </Avatar>
+                    <div className="author-meta">
+                      <strong>{authorName}</strong>
+                      <span>
+                        发布于 {new Date(post.createdAt).toLocaleString()} · 更新于{' '}
+                        {new Date(post.updatedAt).toLocaleString()}
+                      </span>
+                    </div>
+                    <button type="button" className="follow-btn">
+                      + 关注
+                    </button>
                   </div>
-                </div>
+
+                  <div className="jj-article-stats">
+                    <span>
+                      <EyeOutlined /> 阅读 {Math.max(post.id * 38, 680)}
+                    </span>
+                    <span>
+                      <LikeOutlined /> 点赞 {likeState.count}
+                    </span>
+                    <span>
+                      <CommentOutlined /> 评论 {comments.length}
+                    </span>
+                    <span>预计阅读 {readingMinutes} 分钟</span>
+                  </div>
+                </header>
+
+                <article className="jj-article-content">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{post.content}</ReactMarkdown>
+                </article>
               </>
             ) : (
-              <Empty description="文章不存在或已被删除" />
+              <div className="jj-detail-empty">
+                <Empty description="文章不存在或已被删除" />
+              </div>
             )}
-          </Space>
-        </Card>
+          </div>
 
-        <Space direction="vertical" size={12} className="!w-full">
-          <Card className="!border-slate-200 !shadow-none" title="作者信息">
-            <Space>
-              <Avatar style={{ backgroundColor: '#1677ff' }}>作</Avatar>
-              <Space direction="vertical" size={2}>
-                <Typography.Text strong>作者 {post?.id ?? '-'}</Typography.Text>
-                <Typography.Text type="secondary" className="text-xs">
-                  在掘金风格页面中持续输出内容
-                </Typography.Text>
-              </Space>
-            </Space>
-          </Card>
-
-          <Card id="comments" className="!border-slate-200 !shadow-none" title={`评论（${comments.length}）`}>
+          <section className="jj-detail-card jj-comments-card" id="comments">
+            <div className="jj-comments-title">评论区（{comments.length}）</div>
             <Form<CreateCommentPayload>
               form={commentForm}
               layout="vertical"
               initialValues={{ nickname: '', content: '' }}
               onFinish={addComment}
+              className="jj-comment-form"
             >
               <Form.Item
                 label="昵称"
@@ -249,39 +269,79 @@ function PostDetailPage() {
                 name="content"
                 rules={[{ required: true, message: '请输入评论内容' }]}
               >
-                <Input.TextArea rows={4} maxLength={1000} />
+                <Input.TextArea rows={4} maxLength={1000} placeholder="欢迎交流你的观点" />
               </Form.Item>
-              <Button type="primary" htmlType="submit" loading={commentSubmitting} block>
-                发送评论
+              <Button type="primary" htmlType="submit" loading={commentSubmitting}>
+                发表评论
               </Button>
             </Form>
 
-            <div className="mt-4">
+            <div className="jj-comment-list">
               {comments.length ? (
                 <List
                   dataSource={comments}
                   renderItem={(item) => (
-                    <List.Item>
-                      <Space direction="vertical" size={4} className="!w-full">
-                        <Space>
-                          <Typography.Text strong>{item.nickname}</Typography.Text>
-                          <Typography.Text type="secondary" className="text-xs">
-                            {new Date(item.createdAt).toLocaleString()}
-                          </Typography.Text>
-                        </Space>
-                        <Typography.Paragraph className="!mb-0 !whitespace-pre-wrap">
-                          {item.content}
-                        </Typography.Paragraph>
-                      </Space>
+                    <List.Item className="!px-0">
+                      <div className="jj-comment-item">
+                        <Avatar style={{ backgroundColor: '#c2c8d1' }}>
+                          {item.nickname.slice(0, 1).toUpperCase()}
+                        </Avatar>
+                        <div className="jj-comment-body">
+                          <div className="head">
+                            <strong>{item.nickname}</strong>
+                            <span>{new Date(item.createdAt).toLocaleString()}</span>
+                          </div>
+                          <p>{item.content}</p>
+                        </div>
+                      </div>
                     </List.Item>
                   )}
                 />
               ) : (
-                <Empty description="还没有评论，来发第一条吧" />
+                <Empty description="还没有评论，来抢沙发吧" />
               )}
             </div>
-          </Card>
-        </Space>
+          </section>
+        </div>
+
+        <aside className="jj-detail-sidebar">
+          <div className="jj-detail-card jj-side-card">
+            <div className="jj-side-title">关于作者</div>
+            <div className="jj-author-box">
+              <Avatar size={48} style={{ backgroundColor: '#1e80ff' }}>
+                {authorName.slice(0, 1)}
+              </Avatar>
+              <div>
+                <strong>{authorName}</strong>
+                <p>持续在掘金分享前端与工程化实战。</p>
+              </div>
+            </div>
+            <button type="button" className="jj-side-follow">
+              关注作者
+            </button>
+          </div>
+
+          <div className="jj-detail-card jj-side-card">
+            <div className="jj-side-title">文章信息</div>
+            <ul>
+              <li>字数：{post?.content.length ?? 0}</li>
+              <li>点赞：{likeState.count}</li>
+              <li>评论：{comments.length}</li>
+              <li>阅读：{post ? Math.max(post.id * 38, 680) : 0}</li>
+            </ul>
+          </div>
+
+          <div className="jj-detail-card jj-side-card">
+            <div className="jj-side-title">相关文章</div>
+            <div className="jj-related-list">
+              {[1, 2, 3, 4, 5].map((item) => (
+                <Link to="/" key={item}>
+                  掘金 UI 高还原技巧：第 {item} 期实践复盘
+                </Link>
+              ))}
+            </div>
+          </div>
+        </aside>
       </div>
     </MainLayout>
   );

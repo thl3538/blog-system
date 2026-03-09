@@ -1,0 +1,222 @@
+.juejin-shell {
+  min-height: 100vh;
+  background: #f4f5f5;
+  color: #1d2129;
+}
+
+.juejin-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  border-bottom: 1px solid #e5e6eb;
+  background: #fff;
+}
+
+.juejin-header-main {
+  margin: 0 auto;
+  display: flex;
+  height: 60px;
+  max-width: 1440px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 24px;
+}
+
+.juejin-header-left {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 18px;
+}
+
+.juejin-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.juejin-logo-mark {
+  display: inline-grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 7px;
+  background: linear-gradient(135deg, #1171ee, #1e80ff);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.juejin-logo-text {
+  color: #1e80ff;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.juejin-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  overflow-x: auto;
+}
+
+.juejin-nav-item {
+  border: none;
+  background: transparent;
+  color: #515767;
+  text-decoration: none;
+  cursor: pointer;
+  padding: 8px 10px;
+  font-size: 15px;
+  line-height: 22px;
+  transition: color 0.2s;
+  white-space: nowrap;
+}
+
+.juejin-nav-item:hover,
+.juejin-nav-item.is-active {
+  color: #1e80ff;
+}
+
+.juejin-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.juejin-search {
+  display: flex;
+  width: 320px;
+  height: 36px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #c2c8d1;
+  border-radius: 4px;
+  background: #fff;
+  padding: 0 10px;
+}
+
+.juejin-search-icon {
+  color: #8a919f;
+}
+
+.juejin-search input {
+  width: 100%;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: #252933;
+}
+
+.juejin-creator-btn {
+  height: 36px;
+  border-radius: 4px;
+  background: #1e80ff;
+  color: #fff;
+  text-decoration: none;
+  font-size: 14px;
+  line-height: 36px;
+  padding: 0 14px;
+  transition: background 0.2s;
+}
+
+.juejin-creator-btn:hover {
+  background: #1171ee;
+}
+
+.juejin-login-btn {
+  height: 36px;
+  border: 1px solid #c2c8d1;
+  border-radius: 4px;
+  background: #fff;
+  color: #4e5969;
+  font-size: 14px;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.juejin-topic-wrap {
+  border-top: 1px solid #f1f2f5;
+}
+
+.juejin-topic-inner {
+  margin: 0 auto;
+  display: flex;
+  height: 46px;
+  max-width: 1440px;
+  align-items: center;
+  gap: 2px;
+  overflow-x: auto;
+  padding: 0 24px;
+}
+
+.juejin-topic-tab {
+  border: none;
+  background: transparent;
+  color: #515767;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+
+.juejin-topic-tab.is-active,
+.juejin-topic-tab:hover {
+  color: #1e80ff;
+}
+
+.juejin-main {
+  margin: 0 auto;
+  width: 100%;
+  max-width: 1220px;
+  padding: 18px 14px 40px;
+}
+
+@media (max-width: 1100px) {
+  .juejin-search {
+    width: 220px;
+  }
+
+  .juejin-nav-item {
+    padding: 8px;
+  }
+}
+
+@media (max-width: 900px) {
+  .juejin-header-main {
+    padding: 0 12px;
+  }
+
+  .juejin-nav {
+    display: none;
+  }
+
+  .juejin-search {
+    width: 160px;
+  }
+
+  .juejin-login-btn {
+    display: none;
+  }
+
+  .juejin-topic-inner {
+    padding: 0 12px;
+  }
+}
+
+@media (max-width: 620px) {
+  .juejin-logo-text {
+    display: none;
+  }
+
+  .juejin-search {
+    width: 120px;
+  }
+
+  .juejin-creator-btn {
+    padding: 0 10px;
+  }
+}

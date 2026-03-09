@@ -1,52 +1,70 @@
 import {
   ClockCircleOutlined,
   CommentOutlined,
-  FireOutlined,
+  EyeOutlined,
   LikeOutlined,
-  UserOutlined,
+  RiseOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
-import {
-  Card,
-  Empty,
-  Input,
-  List,
-  Pagination,
-  Segmented,
-  Skeleton,
-  Space,
-  Tag,
-  Typography,
-  message,
-} from 'antd';
-import { useEffect, useState } from 'react';
+import { Empty, Pagination, Skeleton, message } from 'antd';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { postsApi } from '../../api/posts';
 import MainLayout from '../../components/layout/MainLayout';
 import { HttpClientError } from '../../lib/http';
 import type { PostItem } from '../../types/post';
+import './PostListPage.css';
+
+const channelTabs = ['推荐', '最新', '热榜', '后端', '前端', 'AI', '阅读'];
+
+const quickNavItems = [
+  { label: '首页', active: true },
+  { label: '沸点' },
+  { label: '课程' },
+  { label: '直播' },
+  { label: '活动' },
+  { label: '竞赛' },
+  { label: 'AI Coding' },
+];
+
+const categoryPool = ['后端', '前端', '人工智能', '架构设计', '工程化', '开源'];
+const authorPool = ['林北辰', '周南', '代码田螺', '阿晨同学', '木木前端', '严叔'];
+
+const getMeta = (post: PostItem) => {
+  const category = categoryPool[post.id % categoryPool.length];
+  const author = authorPool[post.id % authorPool.length];
+  const minutes = (post.id * 7) % 59;
+  const viewCount = Math.max(
+    260,
+    post.likesCount * 46 + post.commentsCount * 29 + post.id * 33,
+  );
+
+  return {
+    category,
+    author,
+    minutes,
+    viewCount,
+  };
+};
 
 function PostListPage() {
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<PostItem[]>([]);
   const [keyword, setKeyword] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [activeFeed, setActiveFeed] = useState<'recommend' | 'latest'>('recommend');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
-  const [sortBy, setSortBy] = useState<'createdAt' | 'title'>('createdAt');
-  const [order, setOrder] = useState<'asc' | 'desc'>('desc');
 
   const fetchList = async (params?: {
     page?: number;
     pageSize?: number;
     keyword?: string;
-    sortBy?: 'createdAt' | 'title';
-    order?: 'asc' | 'desc';
   }) => {
     const nextPage = params?.page ?? page;
     const nextPageSize = params?.pageSize ?? pageSize;
     const nextKeyword = params?.keyword ?? keyword;
-    const nextSortBy = params?.sortBy ?? sortBy;
-    const nextOrder = params?.order ?? order;
 
     setLoading(true);
     try {
@@ -54,16 +72,16 @@ function PostListPage() {
         page: nextPage,
         pageSize: nextPageSize,
         keyword: nextKeyword,
-        sortBy: nextSortBy,
-        order: nextOrder,
+        sortBy: 'createdAt',
+        order: 'desc',
       });
 
       setItems(data.items);
       setTotal(data.total);
       setPage(data.page);
       setPageSize(data.pageSize);
-      setSortBy(data.sortBy);
-      setOrder(data.order);
+      setKeyword(nextKeyword);
+      setSearchInput(nextKeyword);
     } catch (error) {
       const text =
         error instanceof HttpClientError ? error.message : '文章列表加载失败';
@@ -78,80 +96,129 @@ function PostListPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const displayItems = useMemo(() => {
+    const nextItems = [...items];
+
+    if (activeFeed === 'latest') {
+      return nextItems.sort(
+        (a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+      );
+    }
+
+    return nextItems.sort((a, b) => {
+      const hotA = a.likesCount * 4 + a.commentsCount * 2;
+      const hotB = b.likesCount * 4 + b.commentsCount * 2;
+      return hotB - hotA;
+    });
+  }, [items, activeFeed]);
+
+  const rankList = useMemo(
+    () =>
+      [...displayItems]
+        .sort((a, b) => b.likesCount + b.commentsCount - (a.likesCount + a.commentsCount))
+        .slice(0, 5),
+    [displayItems],
+  );
+
   return (
     <MainLayout>
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
-        <Card className="!border-slate-200 !shadow-none" bodyStyle={{ padding: 0 }}>
-          <div className="border-b border-slate-100 px-4 py-3">
-            <Space direction="vertical" size={10} className="!w-full">
-              <Input.Search
-                allowClear
-                placeholder="搜索文章标题/摘要"
-                value={keyword}
-                onChange={(event) => setKeyword(event.target.value)}
-                onSearch={(value) => {
-                  void fetchList({ page: 1, keyword: value });
-                }}
-              />
-
-              <Space wrap size={8}>
-                <Segmented<'createdAt' | 'title'>
-                  size="small"
-                  value={sortBy}
-                  onChange={(value) => {
-                    void fetchList({ page: 1, sortBy: value as 'createdAt' | 'title' });
-                  }}
-                  options={[
-                    { label: '按创建时间', value: 'createdAt' },
-                    { label: '按标题', value: 'title' },
-                  ]}
-                />
-                <Segmented<'asc' | 'desc'>
-                  size="small"
-                  value={order}
-                  onChange={(value) => {
-                    void fetchList({ page: 1, order: value as 'asc' | 'desc' });
-                  }}
-                  options={[
-                    { label: '升序', value: 'asc' },
-                    { label: '降序', value: 'desc' },
-                  ]}
-                />
-              </Space>
-            </Space>
+      <div className="jj-home-grid">
+        <aside className="jj-quick-nav">
+          <div className="jj-card jj-quick-nav-card">
+            {quickNavItems.map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                className={`jj-quick-nav-item ${item.active ? 'is-active' : ''}`}
+              >
+                {item.label}
+              </button>
+            ))}
           </div>
+        </aside>
 
-          {loading ? (
-            <div className="p-4">
-              <Skeleton active paragraph={{ rows: 8 }} title={{ width: '35%' }} />
+        <section className="jj-feed-wrap">
+          <div className="jj-card jj-feed-card">
+            <div className="jj-feed-header">
+              <div className="jj-feed-tabs">
+                {channelTabs.map((tab, index) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    className={`jj-feed-tab ${
+                      (index === 0 && activeFeed === 'recommend') ||
+                      (index === 1 && activeFeed === 'latest')
+                        ? 'is-active'
+                        : ''
+                    }`}
+                    onClick={() => {
+                      if (index === 1) {
+                        setActiveFeed('latest');
+                        return;
+                      }
+                      if (index === 0) {
+                        setActiveFeed('recommend');
+                      }
+                    }}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+
+              <label className="jj-feed-search">
+                <SearchOutlined />
+                <input
+                  value={searchInput}
+                  placeholder="搜索文章标题/摘要"
+                  onChange={(event) => setSearchInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      void fetchList({ page: 1, keyword: searchInput });
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    void fetchList({ page: 1, keyword: searchInput });
+                  }}
+                >
+                  搜索
+                </button>
+              </label>
             </div>
-          ) : items.length ? (
-            <>
-              <List
-                dataSource={items}
-                renderItem={(post) => (
-                  <List.Item className="!border-b !border-slate-100 !px-4 !py-4 hover:!bg-slate-50/70">
-                    <Link key={post.id} to={`/posts/${post.id}`} className="block w-full">
-                      <Space direction="vertical" size={8} className="!w-full">
-                        <Space size={10} className="!text-xs !text-slate-500">
-                          <UserOutlined />
-                          <span>用户 {post.id}</span>
-                          <span>·</span>
-                          <span>{new Date(post.createdAt).toLocaleDateString()}</span>
-                        </Space>
 
-                        <Typography.Title
-                          level={5}
-                          className="!mb-0 line-clamp-2 transition-colors hover:!text-blue-600"
-                        >
-                          {post.title}
-                        </Typography.Title>
+            {loading ? (
+              <div className="jj-feed-loading">
+                <Skeleton active paragraph={{ rows: 10 }} title={{ width: '30%' }} />
+              </div>
+            ) : displayItems.length ? (
+              <div>
+                {displayItems.map((post) => {
+                  const meta = getMeta(post);
 
-                        <Typography.Paragraph className="!mb-0 line-clamp-2 !text-slate-500">
-                          {post.summary}
-                        </Typography.Paragraph>
+                  return (
+                    <article key={post.id} className="jj-feed-item">
+                      <Link to={`/posts/${post.id}`} className="jj-feed-link">
+                        <div className="jj-feed-item-meta">
+                          <span>{meta.author}</span>
+                          <span className="dot">·</span>
+                          <span>{meta.category}</span>
+                          <span className="dot">·</span>
+                          <span>
+                            {new Date(post.createdAt).toLocaleDateString()} · {meta.minutes}分钟前
+                          </span>
+                        </div>
 
-                        <Space size={14} className="!text-xs !text-slate-500">
+                        <h3>{post.title}</h3>
+                        <p>{post.summary}</p>
+
+                        <div className="jj-feed-item-stats">
+                          <span>
+                            <EyeOutlined /> {meta.viewCount}
+                          </span>
                           <span>
                             <LikeOutlined /> {post.likesCount}
                           </span>
@@ -159,72 +226,82 @@ function PostListPage() {
                             <CommentOutlined /> {post.commentsCount}
                           </span>
                           <span>
-                            <ClockCircleOutlined /> 更新于{' '}
-                            {new Date(post.updatedAt).toLocaleDateString()}
+                            <ClockCircleOutlined /> {new Date(post.updatedAt).toLocaleDateString()}
                           </span>
-                        </Space>
-                      </Space>
-                    </Link>
-                  </List.Item>
-                )}
-              />
+                        </div>
+                      </Link>
+                    </article>
+                  );
+                })}
 
-              <div className="flex justify-end px-4 py-4">
-                <Pagination
-                  current={page}
-                  pageSize={pageSize}
-                  total={total}
-                  showSizeChanger
-                  pageSizeOptions={[5, 10, 20, 50]}
-                  onChange={(nextPage, nextPageSize) => {
-                    void fetchList({
-                      page: nextPage,
-                      pageSize: nextPageSize,
-                    });
-                  }}
-                />
-              </div>
-            </>
-          ) : (
-            <div className="p-8">
-              <Empty description="暂无文章" />
-            </div>
-          )}
-        </Card>
-
-        <Space direction="vertical" size={12} className="!w-full">
-          <Card className="!border-slate-200 !shadow-none" title="热门标签">
-            <Space wrap>
-              {['后端', '前端', 'AI', '数据库', '架构', '工程化'].map((tag) => (
-                <Tag key={tag} className="cursor-pointer !rounded-full !px-3">
-                  {tag}
-                </Tag>
-              ))}
-            </Space>
-          </Card>
-
-          <Card className="!border-slate-200 !shadow-none" title="热门文章">
-            <Space direction="vertical" className="!w-full" size={10}>
-              {[1, 2, 3, 4, 5].map((rank) => (
-                <div key={rank} className="flex items-start gap-2 text-sm">
-                  <span className="min-w-5 font-semibold text-orange-500">{rank}</span>
-                  <span className="line-clamp-2 text-slate-700 hover:text-blue-600">
-                    掘金风格交互实践：第 {rank} 条推荐位示例
-                  </span>
+                <div className="jj-feed-pagination">
+                  <Pagination
+                    current={page}
+                    pageSize={pageSize}
+                    total={total}
+                    showSizeChanger
+                    pageSizeOptions={[5, 10, 20, 50]}
+                    onChange={(nextPage, nextPageSize) => {
+                      void fetchList({
+                        page: nextPage,
+                        pageSize: nextPageSize,
+                      });
+                    }}
+                  />
                 </div>
-              ))}
-            </Space>
-          </Card>
+              </div>
+            ) : (
+              <div className="jj-feed-empty">
+                <Empty description="暂无文章，换个关键词试试" />
+              </div>
+            )}
+          </div>
+        </section>
 
-          <Card className="!border-slate-200 !shadow-none" title="公告">
-            <Space direction="vertical" size={6} className="!w-full text-sm text-slate-600">
-              <span className="inline-flex items-center gap-1 text-orange-500">
-                <FireOutlined /> 本周上新：点赞 + 评论 + 留言
-              </span>
-              <span>欢迎体验新版本交互，反馈会优先处理。</span>
-            </Space>
-          </Card>
-        </Space>
+        <aside className="jj-sidebar">
+          <div className="jj-card jj-sign-card">
+            <h4>下午好 👋</h4>
+            <p>点亮社区荣誉值，持续创作更容易被推荐</p>
+            <Link to="/posts/new">立即创作</Link>
+          </div>
+
+          <div className="jj-card jj-ad-card">
+            <span>掘金专栏</span>
+            <strong>2026 前端工程化趋势报告</strong>
+            <p>从 AI 协作到性能优化，一次看全实战方法。</p>
+          </div>
+
+          <div className="jj-card jj-rank-card">
+            <div className="jj-card-title">
+              <RiseOutlined /> 作者榜
+            </div>
+            <div className="jj-rank-list">
+              {rankList.map((post, index) => {
+                const meta = getMeta(post);
+                return (
+                  <div key={post.id} className="jj-rank-item">
+                    <span className="rank-no">{index + 1}</span>
+                    <div>
+                      <div className="name">{meta.author}</div>
+                      <div className="desc">本周新增获赞 {post.likesCount + post.commentsCount}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="jj-card jj-tags-card">
+            <div className="jj-card-title">热门标签</div>
+            <div className="jj-tag-list">
+              {['前端', 'TypeScript', 'Node.js', 'AI', '架构', 'React'].map((tag) => (
+                <button key={tag} type="button" className="jj-tag-item">
+                  {tag}
+                </button>
+              ))}
+            </div>
+          </div>
+        </aside>
       </div>
     </MainLayout>
   );

@@ -6,7 +6,8 @@ import remarkGfm from 'remark-gfm';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { postsApi } from '../../api/posts';
 import MainLayout from '../../components/layout/MainLayout';
-import { HttpClientError } from '../../lib/http';
+import ServiceUnavailable from '../../components/ServiceUnavailable';
+import { HttpClientError, isServiceUnavailableError } from '../../lib/http';
 import type { PostPayload } from '../../types/post';
 import './PostEditorPage.css';
 
@@ -23,6 +24,7 @@ function PostEditPage() {
   const [submitting, setSubmitting] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [exists, setExists] = useState(true);
+  const [serviceUnavailable, setServiceUnavailable] = useState(false);
   const [editorMode, setEditorMode] = useState<EditorMode>('live');
 
   const content = Form.useWatch('content', form) ?? '';
@@ -65,8 +67,14 @@ function PostEditPage() {
         }
 
         form.setFieldsValue(values);
+        setServiceUnavailable(false);
         setExists(true);
       } catch (error) {
+        if (isServiceUnavailableError(error)) {
+          setServiceUnavailable(true);
+          return;
+        }
+
         const text = error instanceof HttpClientError ? error.message : '文章加载失败';
         message.error(text);
         setExists(false);
@@ -101,6 +109,11 @@ function PostEditPage() {
       message.success('文章更新成功');
       navigate(`/posts/${updated.id}`);
     } catch (error) {
+      if (isServiceUnavailableError(error)) {
+        setServiceUnavailable(true);
+        return;
+      }
+
       const text = error instanceof HttpClientError ? error.message : '更新失败';
       message.error(text);
     } finally {
@@ -129,6 +142,8 @@ function PostEditPage() {
               <div className="jj-editor-loading">
                 <Skeleton active paragraph={{ rows: 10 }} title={{ width: '35%' }} />
               </div>
+            ) : serviceUnavailable ? (
+              <ServiceUnavailable compact onRetry={() => window.location.reload()} />
             ) : !exists ? (
               <div className="jj-editor-empty">
                 <Empty description="文章不存在或已被删除" />
@@ -210,10 +225,14 @@ function PostEditPage() {
                     type="primary"
                     htmlType="submit"
                     loading={submitting}
+                    disabled={serviceUnavailable}
                     icon={<SaveOutlined />}
                   >
                     保存修改
                   </Button>
+                  {serviceUnavailable ? (
+                    <span className="jj-editor-saved">后端不可用，暂时无法保存</span>
+                  ) : null}
                 </Space>
               </Form>
             )}

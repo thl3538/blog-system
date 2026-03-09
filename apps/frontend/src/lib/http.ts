@@ -16,6 +16,17 @@ export class HttpClientError extends Error {
   }
 }
 
+export const HTTP_ERROR_CODES = {
+  SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
+} as const;
+
+export const isServiceUnavailableError = (error: unknown) =>
+  error instanceof HttpClientError &&
+  (error.code === HTTP_ERROR_CODES.SERVICE_UNAVAILABLE ||
+    error.status === 502 ||
+    error.status === 503 ||
+    error.status === 504);
+
 const createHttpClient = (): AxiosInstance => {
   const instance = axios.create({
     baseURL: API_BASE,
@@ -40,6 +51,16 @@ const createHttpClient = (): AxiosInstance => {
       const data = error.response?.data as
         | { message?: string; error?: { message?: string; code?: string } }
         | undefined;
+
+      if (!error.response) {
+        return Promise.reject(
+          new HttpClientError(
+            '服务暂不可用，请确认后端服务已启动后重试',
+            undefined,
+            HTTP_ERROR_CODES.SERVICE_UNAVAILABLE,
+          ),
+        );
+      }
 
       const message =
         data?.error?.message ?? data?.message ?? error.message ?? '请求失败';

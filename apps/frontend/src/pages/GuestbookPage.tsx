@@ -16,7 +16,8 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { guestbookApi } from '../api/guestbook';
 import MainLayout from '../components/layout/MainLayout';
-import { HttpClientError } from '../lib/http';
+import ServiceUnavailable from '../components/ServiceUnavailable';
+import { HttpClientError, isServiceUnavailableError } from '../lib/http';
 import type { CreateGuestbookMessagePayload, GuestbookMessage } from '../types/guestbook';
 import './GuestbookPage.css';
 
@@ -24,14 +25,22 @@ function GuestbookPage() {
   const [form] = Form.useForm<CreateGuestbookMessagePayload>();
   const [items, setItems] = useState<GuestbookMessage[]>([]);
   const [loading, setLoading] = useState(false);
+  const [serviceUnavailable, setServiceUnavailable] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const fetchMessages = async () => {
     setLoading(true);
     try {
       const data = await guestbookApi.list();
+      setServiceUnavailable(false);
       setItems(data);
     } catch (error) {
+      if (isServiceUnavailableError(error)) {
+        setServiceUnavailable(true);
+        setItems([]);
+        return;
+      }
+
       const text = error instanceof HttpClientError ? error.message : '留言加载失败';
       message.error(text);
     } finally {
@@ -51,6 +60,11 @@ function GuestbookPage() {
       form.resetFields();
       await fetchMessages();
     } catch (error) {
+      if (isServiceUnavailableError(error)) {
+        setServiceUnavailable(true);
+        return;
+      }
+
       const text = error instanceof HttpClientError ? error.message : '留言失败';
       message.error(text);
     } finally {
@@ -113,7 +127,13 @@ function GuestbookPage() {
                   />
                 </Form.Item>
 
-                <Button type="primary" htmlType="submit" loading={submitting} icon={<SendOutlined />}>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={submitting}
+                  disabled={serviceUnavailable}
+                  icon={<SendOutlined />}
+                >
                   提交留言
                 </Button>
               </Form>
@@ -124,6 +144,8 @@ function GuestbookPage() {
                 <div className="jj-guestbook-loading">
                   <Skeleton active paragraph={{ rows: 7 }} title={{ width: '28%' }} />
                 </div>
+              ) : serviceUnavailable ? (
+                <ServiceUnavailable compact onRetry={() => void fetchMessages()} />
               ) : items.length ? (
                 <div className="jj-guestbook-list">
                   {items.map((item) => (

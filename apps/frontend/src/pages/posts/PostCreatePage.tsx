@@ -6,7 +6,7 @@ import remarkGfm from 'remark-gfm';
 import { Link, useNavigate } from 'react-router-dom';
 import { postsApi } from '../../api/posts';
 import MainLayout from '../../components/layout/MainLayout';
-import { HttpClientError } from '../../lib/http';
+import { HttpClientError, isServiceUnavailableError } from '../../lib/http';
 import type { PostPayload } from '../../types/post';
 import './PostEditorPage.css';
 
@@ -20,6 +20,7 @@ function PostCreatePage() {
   const navigate = useNavigate();
 
   const [submitting, setSubmitting] = useState(false);
+  const [serviceUnavailable, setServiceUnavailable] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [editorMode, setEditorMode] = useState<EditorMode>('live');
 
@@ -62,12 +63,18 @@ function PostCreatePage() {
     setSubmitting(true);
     try {
       const created = await postsApi.create(values);
+      setServiceUnavailable(false);
       if (typeof window !== 'undefined') {
         window.localStorage.removeItem(DRAFT_KEY);
       }
       message.success('文章发布成功');
       navigate(`/posts/${created.id}`);
     } catch (error) {
+      if (isServiceUnavailableError(error)) {
+        setServiceUnavailable(true);
+        return;
+      }
+
       const text = error instanceof HttpClientError ? error.message : '发布失败';
       message.error(text);
     } finally {
@@ -170,9 +177,18 @@ function PostCreatePage() {
                 <Link to="/">
                   <Button icon={<ArrowLeftOutlined />}>取消</Button>
                 </Link>
-                <Button type="primary" htmlType="submit" loading={submitting} icon={<SaveOutlined />}>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={submitting}
+                  disabled={serviceUnavailable}
+                  icon={<SaveOutlined />}
+                >
                   发布文章
                 </Button>
+                {serviceUnavailable ? (
+                  <span className="jj-editor-saved">后端不可用，暂时无法发布</span>
+                ) : null}
               </Space>
             </Form>
           </div>

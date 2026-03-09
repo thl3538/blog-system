@@ -1,3 +1,6 @@
+@import '@uiw/react-md-editor/markdown-editor.css';
+@import '@uiw/react-markdown-preview/markdown.css';
+
 .jj-editor-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 300px;

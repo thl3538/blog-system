@@ -11,7 +11,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { postsApi } from '../../api/posts';
 import MainLayout from '../../components/layout/MainLayout';
-import { HttpClientError } from '../../lib/http';
+import ServiceUnavailable from '../../components/ServiceUnavailable';
+import { HttpClientError, isServiceUnavailableError } from '../../lib/http';
 import type { PostItem } from '../../types/post';
 import './PostListPage.css';
 
@@ -49,6 +50,7 @@ const getMeta = (post: PostItem) => {
 
 function PostListPage() {
   const [loading, setLoading] = useState(false);
+  const [serviceUnavailable, setServiceUnavailable] = useState(false);
   const [items, setItems] = useState<PostItem[]>([]);
   const [keyword, setKeyword] = useState('');
   const [searchInput, setSearchInput] = useState('');
@@ -76,6 +78,7 @@ function PostListPage() {
         order: 'desc',
       });
 
+      setServiceUnavailable(false);
       setItems(data.items);
       setTotal(data.total);
       setPage(data.page);
@@ -83,6 +86,12 @@ function PostListPage() {
       setKeyword(nextKeyword);
       setSearchInput(nextKeyword);
     } catch (error) {
+      if (isServiceUnavailableError(error)) {
+        setServiceUnavailable(true);
+        setItems([]);
+        return;
+      }
+
       const text =
         error instanceof HttpClientError ? error.message : '文章列表加载失败';
       message.error(text);
@@ -194,6 +203,13 @@ function PostListPage() {
               <div className="jj-feed-loading">
                 <Skeleton active paragraph={{ rows: 10 }} title={{ width: '30%' }} />
               </div>
+            ) : serviceUnavailable ? (
+              <ServiceUnavailable
+                compact
+                onRetry={() => {
+                  void fetchList({ page: 1, keyword: searchInput });
+                }}
+              />
             ) : displayItems.length ? (
               <div>
                 {displayItems.map((post) => {

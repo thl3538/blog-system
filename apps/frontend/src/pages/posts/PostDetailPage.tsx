@@ -17,6 +17,7 @@ import {
   List,
   Modal,
   Skeleton,
+  Space,
   message,
 } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
@@ -25,7 +26,8 @@ import remarkGfm from 'remark-gfm';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { postsApi } from '../../api/posts';
 import MainLayout from '../../components/layout/MainLayout';
-import { HttpClientError } from '../../lib/http';
+import ServiceUnavailable from '../../components/ServiceUnavailable';
+import { HttpClientError, isServiceUnavailableError } from '../../lib/http';
 import { getVisitorId } from '../../lib/visitor';
 import type { CreateCommentPayload, PostComment, PostItem } from '../../types/post';
 import './PostDetailPage.css';
@@ -40,9 +42,11 @@ function PostDetailPage() {
   const [commentForm] = Form.useForm<CreateCommentPayload>();
 
   const [loading, setLoading] = useState(false);
+  const [serviceUnavailable, setServiceUnavailable] = useState(false);
   const [post, setPost] = useState<PostItem | null>(null);
   const [likeState, setLikeState] = useState({ count: 0, liked: false });
   const [comments, setComments] = useState<PostComment[]>([]);
+  const [relatedPosts, setRelatedPosts] = useState<PostItem[]>([]);
   const [commentSubmitting, setCommentSubmitting] = useState(false);
 
   const visitorId = getVisitorId();
@@ -58,20 +62,44 @@ function PostDetailPage() {
         postsApi.listComments(postId),
       ]);
 
+      setServiceUnavailable(false);
       setPost(postData);
       setLikeState(likesData);
       setComments(commentsData);
     } catch (error) {
+      if (isServiceUnavailableError(error)) {
+        setServiceUnavailable(true);
+        setPost(null);
+        setComments([]);
+        return;
+      }
+
       const text = error instanceof HttpClientError ? error.message : '文章加载失败';
       message.error(text);
       setPost(null);
+      setComments([]);
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchRelatedPosts = async () => {
+    try {
+      const list = await postsApi.list({
+        page: 1,
+        pageSize: 5,
+        sortBy: 'createdAt',
+        order: 'desc',
+      });
+      setRelatedPosts(list.items.filter((item) => item.id !== postId));
+    } catch {
+      setRelatedPosts([]);
+    }
+  };
+
   useEffect(() => {
     void fetchDetail();
+    void fetchRelatedPosts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postId]);
 
@@ -113,6 +141,11 @@ function PostDetailPage() {
           : prev,
       );
     } catch (error) {
+      if (isServiceUnavailableError(error)) {
+        setServiceUnavailable(true);
+        return;
+      }
+
       const text = error instanceof HttpClientError ? error.message : '点赞操作失败';
       message.error(text);
     }
@@ -137,6 +170,11 @@ function PostDetailPage() {
           : prev,
       );
     } catch (error) {
+      if (isServiceUnavailableError(error)) {
+        setServiceUnavailable(true);
+        return;
+      }
+
       const text = error instanceof HttpClientError ? error.message : '评论失败';
       message.error(text);
     } finally {
@@ -153,6 +191,20 @@ function PostDetailPage() {
     if (!post?.content) return 1;
     return Math.max(1, Math.round(post.content.length / 420));
   }, [post]);
+
+  if (serviceUnavailable) {
+    return (
+      <MainLayout>
+        <div className="jj-detail-card">
+          <ServiceUnavailable
+            onRetry={() => {
+              void fetchDetail();
+            }}
+          />
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
@@ -244,6 +296,27 @@ function PostDetailPage() {
             ) : (
               <div className="jj-detail-empty">
                 <Empty description="文章不存在或已被删除" />
+                <Space wrap>
+                  <Link to="/">
+                    <Button type="primary">返回首页</Button>
+                  </Link>
+                  <Link to="/posts/new">
+                    <Button>去写文章</Button>
+                  </Link>
+                </Space>
+
+                {relatedPosts.length ? (
+                  <div className="jj-empty-related">
+                    <strong>你可以看看这些文章：</strong>
+                    <div className="jj-empty-related-links">
+                      {relatedPosts.map((item) => (
+                        <Link key={item.id} to={`/posts/${item.id}`}>
+                          {item.title}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             )}
           </div>
@@ -334,11 +407,15 @@ function PostDetailPage() {
           <div className="jj-detail-card jj-side-card">
             <div className="jj-side-title">相关文章</div>
             <div className="jj-related-list">
-              {[1, 2, 3, 4, 5].map((item) => (
-                <Link to="/" key={item}>
-                  掘金 UI 高还原技巧：第 {item} 期实践复盘
-                </Link>
-              ))}
+              {relatedPosts.length ? (
+                relatedPosts.map((item) => (
+                  <Link to={`/posts/${item.id}`} key={item.id}>
+                    {item.title}
+                  </Link>
+                ))
+              ) : (
+                <span className="jj-related-empty">暂无推荐文章</span>
+              )}
             </div>
           </div>
         </aside>

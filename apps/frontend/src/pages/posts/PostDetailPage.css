@@ -286,6 +286,9 @@
 }
 
 .jj-detail-sidebar {
+  position: sticky;
+  top: 132px;
+  align-self: start;
   display: flex;
   flex-direction: column;
   gap: 14px;

@@ -202,32 +202,40 @@ function PostListPage() {
                   return (
                     <article key={post.id} className="jj-feed-item">
                       <Link to={`/posts/${post.id}`} className="jj-feed-link">
-                        <div className="jj-feed-item-meta">
-                          <span>{meta.author}</span>
-                          <span className="dot">·</span>
-                          <span>{meta.category}</span>
-                          <span className="dot">·</span>
-                          <span>
-                            {new Date(post.createdAt).toLocaleDateString()} · {meta.minutes}分钟前
-                          </span>
-                        </div>
+                        <div className="jj-feed-link-inner">
+                          <div className="jj-feed-main">
+                            <div className="jj-feed-item-meta">
+                              <span>{meta.author}</span>
+                              <span className="dot">·</span>
+                              <span>{meta.category}</span>
+                              <span className="dot">·</span>
+                              <span>
+                                {new Date(post.createdAt).toLocaleDateString()} · {meta.minutes}分钟前
+                              </span>
+                            </div>
 
-                        <h3>{post.title}</h3>
-                        <p>{post.summary}</p>
+                            <h3>{post.title}</h3>
+                            <p>{post.summary}</p>
 
-                        <div className="jj-feed-item-stats">
-                          <span>
-                            <EyeOutlined /> {meta.viewCount}
-                          </span>
-                          <span>
-                            <LikeOutlined /> {post.likesCount}
-                          </span>
-                          <span>
-                            <CommentOutlined /> {post.commentsCount}
-                          </span>
-                          <span>
-                            <ClockCircleOutlined /> {new Date(post.updatedAt).toLocaleDateString()}
-                          </span>
+                            <div className="jj-feed-item-stats">
+                              <span>
+                                <EyeOutlined /> {meta.viewCount}
+                              </span>
+                              <span>
+                                <LikeOutlined /> {post.likesCount}
+                              </span>
+                              <span>
+                                <CommentOutlined /> {post.commentsCount}
+                              </span>
+                              <span>
+                                <ClockCircleOutlined /> {new Date(post.updatedAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="jj-feed-thumb" aria-hidden="true">
+                            <span>{meta.category}</span>
+                          </div>
                         </div>
                       </Link>
                     </article>

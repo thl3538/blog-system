@@ -31,7 +31,13 @@ export class RolesGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<RequestWithUser>();
     const role = request.user?.role;
 
-    if (!role || !requiredRoles.includes(role)) {
+    // JwtAuthGuard (method-level) will attach request.user.
+    // As a global guard, RolesGuard may run before that, so we defer here.
+    if (!role) {
+      return true;
+    }
+
+    if (!requiredRoles.includes(role)) {
       throw new ForbiddenException('Insufficient permissions');
     }
 

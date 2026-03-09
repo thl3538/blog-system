@@ -246,10 +246,12 @@ export class PostsService {
   async addComment(postId: number, dto: CreateCommentDto) {
     await this.ensurePostExists(postId);
 
+    const nickname = dto.nickname?.trim() || '匿名用户';
+
     return this.prisma.postComment.create({
       data: {
         postId,
-        nickname: dto.nickname.trim(),
+        nickname,
         content: dto.content.trim(),
       },
     });

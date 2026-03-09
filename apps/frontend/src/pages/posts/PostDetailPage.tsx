@@ -340,11 +340,11 @@ function PostDetailPage() {
               className="jj-comment-form"
             >
               <Form.Item
-                label="昵称"
+                label="昵称（可选）"
                 name="nickname"
-                rules={[{ required: true, message: '请输入昵称' }]}
+                rules={[{ max: 80, message: '昵称最多 80 个字符' }]}
               >
-                <Input maxLength={80} placeholder="请输入昵称" />
+                <Input maxLength={80} placeholder="不填则显示为“匿名用户”" />
               </Form.Item>
               <Form.Item
                 label="评论内容"

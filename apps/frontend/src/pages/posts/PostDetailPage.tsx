@@ -335,23 +335,20 @@ function PostDetailPage() {
             <Form<CreateCommentPayload>
               form={commentForm}
               layout="vertical"
-              initialValues={{ nickname: '', content: '' }}
+              initialValues={{ content: '' }}
               onFinish={addComment}
               className="jj-comment-form"
             >
-              <Form.Item
-                label="昵称（可选）"
-                name="nickname"
-                rules={[{ max: 80, message: '昵称最多 80 个字符' }]}
-              >
-                <Input maxLength={80} placeholder="不填则显示为“匿名用户”" />
-              </Form.Item>
               <Form.Item
                 label="评论内容"
                 name="content"
                 rules={[{ required: true, message: '请输入评论内容' }]}
               >
-                <Input.TextArea rows={4} maxLength={1000} placeholder="欢迎交流你的观点" />
+                <Input.TextArea
+                  rows={4}
+                  maxLength={1000}
+                  placeholder="欢迎交流你的观点（昵称自动使用账号信息）"
+                />
               </Form.Item>
               <Button type="primary" htmlType="submit" loading={commentSubmitting}>
                 发表评论

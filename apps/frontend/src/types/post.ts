@@ -55,6 +55,5 @@ export type PostComment = {
 };
 
 export type CreateCommentPayload = {
-  nickname?: string;
   content: string;
 };

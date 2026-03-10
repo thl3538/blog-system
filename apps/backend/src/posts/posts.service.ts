@@ -243,10 +243,21 @@ export class PostsService {
     });
   }
 
-  async addComment(postId: number, dto: CreateCommentDto) {
+  async addComment(postId: number, dto: CreateCommentDto, userId?: number) {
     await this.ensurePostExists(postId);
 
-    const nickname = dto.nickname?.trim() || '匿名用户';
+    let nickname = '匿名用户';
+
+    if (userId) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true, email: true },
+      });
+
+      if (user) {
+        nickname = user.name?.trim() || user.email.split('@')[0] || nickname;
+      }
+    }
 
     return this.prisma.postComment.create({
       data: {

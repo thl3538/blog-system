@@ -11,7 +11,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
 import { UserRole } from '../auth/roles.enum';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { CreatePostDto } from './dto/create-post.dto';
@@ -57,12 +59,14 @@ export class PostsController {
     return this.postsService.listComments(id);
   }
 
+  @UseGuards(OptionalJwtAuthGuard)
   @Post(':id/comments')
   addComment(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: CreateCommentDto,
+    @CurrentUser('sub') userId?: number,
   ) {
-    return this.postsService.addComment(id, dto);
+    return this.postsService.addComment(id, dto, userId);
   }
 
   @UseGuards(JwtAuthGuard)

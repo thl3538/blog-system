@@ -1,9 +1,4 @@
-import {
-  ClockCircleOutlined,
-  MessageOutlined,
-  SendOutlined,
-  UserOutlined,
-} from '@ant-design/icons';
+import { ClockCircleOutlined, MessageOutlined, SendOutlined } from '@ant-design/icons';
 import {
   Avatar,
   Button,
@@ -103,17 +98,9 @@ function GuestbookPage() {
               <Form<CreateGuestbookMessagePayload>
                 layout="vertical"
                 form={form}
-                initialValues={{ nickname: '', content: '' }}
+                initialValues={{ content: '' }}
                 onFinish={submit}
               >
-                <Form.Item
-                  label="昵称"
-                  name="nickname"
-                  rules={[{ required: true, message: '请输入昵称' }]}
-                >
-                  <Input maxLength={80} placeholder="请输入昵称" prefix={<UserOutlined />} />
-                </Form.Item>
-
                 <Form.Item
                   label="留言内容"
                   name="content"
@@ -122,7 +109,7 @@ function GuestbookPage() {
                   <Input.TextArea
                     rows={5}
                     maxLength={1000}
-                    placeholder="写下你的留言（支持多行）..."
+                    placeholder="写下你的留言（昵称自动使用账号信息）..."
                     showCount
                   />
                 </Form.Item>

@@ -1,10 +1,10 @@
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateGuestbookMessageDto {
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @MaxLength(80)
-  nickname!: string;
+  nickname?: string;
 
   @IsString()
   @IsNotEmpty()

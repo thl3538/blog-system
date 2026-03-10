@@ -6,6 +6,5 @@ export type GuestbookMessage = {
 };
 
 export type CreateGuestbookMessagePayload = {
-  nickname: string;
   content: string;
 };
